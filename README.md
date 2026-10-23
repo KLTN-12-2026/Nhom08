@@ -1,2 +1,3 @@
 # Nhom08
-Xây dựng ứng dụng TROVE hỗ trợ lập kế hoạch cuộc hẹn và đề xuất địa điểm tích hợp AI - GVHD: TS. Đặng Việt Hùng
+
+Xây dựng Trove – hệ thống lên kế hoạch gặp gỡ dựa trên AI và dữ liệu trải nghiệm cộng đồng - GVHD: TS. Đặng Việt Hùng
