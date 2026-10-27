@@ -5,6 +5,10 @@ export const auth = {
     const response = await apiClient.post("/login?platform=0", credentials);
     return response.data;
   },
+  loginAdmin: async (credentials) => {
+    const response = await apiClient.post("/admin/login", credentials);
+    return response.data;
+  },
   register: async (data) => {
     const response = await apiClient.post("/register", data);
     return response.data;
