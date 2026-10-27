@@ -4,8 +4,8 @@ import useLanguageStore from "../../stores/languageStore.ts";
 
 const useLoginStore = create((set, get) => ({
   // Form state
-  email: "kuncutelovely@gmail.com",
-  password: "admin123",
+  email: "admin@trove.vn",
+  password: "123456789",
   rememberMe: false,
 
   // UI state

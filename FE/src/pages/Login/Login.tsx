@@ -33,6 +33,13 @@ export default function Login() {
   const { theme, toggleTheme } = useThemeStore();
   const { t, currentLanguage } = useLanguageStore();
 
+  React.useEffect(() => {
+    form.setFieldsValue({
+      email,
+      password,
+    });
+  }, [form, email, password]);
+
   const handleInputChange = (field: string, value: any) => {
     if (formErrors[field]) {
       setFormErrors({ ...formErrors, [field]: null });
