@@ -71,43 +71,59 @@ const useLoginStore = create((set, get) => ({
     setLoading(true);
 
     try {
-      const response = await RepositoryManager.auth.login({
+      // Ưu tiên gọi API admin/login chuyên biệt cho trang Admin
+      const loginFn = RepositoryManager.auth.loginAdmin || RepositoryManager.auth.login;
+      const response = await loginFn({
         email,
         password,
         rememberMe,
       });
 
+      const resData = response.data || response;
+      const userObj = resData?.user;
+
       // Check user role: Only allow admin (role 0 or "admin")
-      const userObj = response.data?.user;
       if (userObj && userObj.role !== 0 && userObj.role !== "admin") {
         toast.error(useLanguageStore.getState().t("auth.customerCannotLoginAdmin"));
+        setError(useLanguageStore.getState().t("auth.customerCannotLoginAdmin"));
         return { success: false, error: "Access denied" };
       }
 
+      const accessToken = resData?.access_token || resData?.token;
+      const refreshToken = resData?.refresh_token;
+
       // Set token and user in dataMainStore
       dataMainStore.setToken({
-        token: response.data.access_token,
-        refreshToken: response.data.refresh_token,
-        tokenExpired: null, // API doesn't return expiration
-        refreshTokenExpired: null, // API doesn't return expiration
+        token: accessToken,
+        refreshToken: refreshToken,
+        tokenExpired: null,
+        refreshTokenExpired: null,
       });
-      dataMainStore.setUser(response.data.user);
-      localStorage.setItem("admin_access_token", response.data.access_token);
+      if (userObj) {
+        dataMainStore.setUser(userObj);
+      }
+      if (accessToken) {
+        localStorage.setItem("admin_access_token", accessToken);
+      }
 
-      toast.success(useLanguageStore.getState().t("auth.loginSuccess"));
+      toast.success(useLanguageStore.getState().t("auth.loginSuccess") || "Đăng nhập thành công!");
       resetForm();
 
-      // Navigate to dashboard
+      // Navigate to dashboard / home
       if (navigate) {
         navigate("/admin/home", { replace: true });
       }
 
-      return { success: true, data: response.data };
+      return { success: true, data: resData };
     } catch (err) {
       console.log("Lỗi đăng nhập:", err);
       const message =
-        err?.response?.data?.msg || useLanguageStore.getState().t("auth.loginFailed");
+        err?.response?.data?.message ||
+        err?.response?.data?.msg ||
+        useLanguageStore.getState().t("auth.loginFailed") ||
+        "Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản hoặc mật khẩu!";
       setError(message);
+      toast.error(message);
       return { success: false, error: message };
     } finally {
       setLoading(false);

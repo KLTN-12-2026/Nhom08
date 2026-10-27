@@ -5,6 +5,18 @@ import HomePage from "./pages/Home/HomePage";
 import Places from "./pages/Places/Places.tsx";
 
 import Login from "./pages/Login/Login.tsx";
+import useDataMainStore from "./stores/dataMainStore";
+
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, token } = useDataMainStore();
+  const hasToken = isAuthenticated || !!token || !!localStorage.getItem("admin_access_token");
+
+  if (!hasToken) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  return children;
+}
 
 function App() {
   return (
@@ -14,14 +26,16 @@ function App() {
         <Route
           path="/*"
           element={
-            <MainLayout>
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/admin/home" element={<HomePage />} />
-                <Route path="/admin/places" element={<Places />} />
-                <Route path="*" element={<Navigate to="/admin/places" replace />} />
-              </Routes>
-            </MainLayout>
+            <ProtectedRoute>
+              <MainLayout>
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/admin/home" element={<HomePage />} />
+                  <Route path="/admin/places" element={<Places />} />
+                  <Route path="*" element={<Navigate to="/admin/places" replace />} />
+                </Routes>
+              </MainLayout>
+            </ProtectedRoute>
           }
         />
       </Routes>
