@@ -70,17 +70,20 @@ class UpdateUserRequest extends BaseRequest
     public function messages(): array
     {
         return [
-            'name.min' => 'Name must be at least 2 characters.',
-            'name.max' => 'Name must not exceed 100 characters.',
-            
-            'phone_number.max' => 'Phone number must not exceed 20 characters.',
-            
-            'role.in' => 'Role must be either admin or user.',
-            
-            'gender.in' => 'Gender must be male, female, or other.',
-            
-            'is_active.boolean' => 'Active status must be true or false.',
-            'is_blocked.boolean' => 'Blocked status must be true or false.',
+            'name.min' => 'Họ tên phải có ít nhất 2 ký tự.',
+            'name.max' => 'Họ tên không được vượt quá 100 ký tự.',
+
+            'email.email' => 'Email không hợp lệ.',
+            'email.unique' => 'Email này đã được sử dụng.',
+
+            'phone_number.max' => 'Số điện thoại không được vượt quá 20 ký tự.',
+
+            'role.in' => 'Vai trò phải là admin hoặc user.',
+
+            'gender.in' => 'Giới tính phải là male, female hoặc other.',
+
+            'is_active.boolean' => 'Trạng thái hoạt động phải là true hoặc false.',
+            'is_blocked.boolean' => 'Trạng thái chặn phải là true hoặc false.',
         ];
     }
 }

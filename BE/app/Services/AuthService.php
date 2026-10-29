@@ -41,6 +41,10 @@ class AuthService extends BaseService
         if (!$user || !password_verify($credentials['password'], $user->password)) {
             throw new BadRequestHttpException(INVALID_CREDENTIALS_MESSAGE);
         }
+
+        if ($user->is_blocked) {
+            throw new BadRequestHttpException('Tài khoản của bạn đã bị khóa.');
+        }
         // if (
         //     ($user->role === 'user' && $request->platform != PlatformEnum::MOBILE->value) ||
         //     ($user->role === 'admin' && $request->platform != PlatformEnum::WEB->value)
@@ -80,6 +84,10 @@ class AuthService extends BaseService
         $user = $this->repository->findBy('email', $credentials['email']);
         if (!$user || !password_verify($credentials['password'], $user->password)) {
             throw new BadRequestHttpException(INVALID_CREDENTIALS_MESSAGE);
+        }
+
+        if ($user->is_blocked) {
+            throw new BadRequestHttpException('Tài khoản của bạn đã bị khóa.');
         }
 
         if ($user->role !== 'admin') {

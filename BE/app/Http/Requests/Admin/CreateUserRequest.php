@@ -71,27 +71,27 @@ class CreateUserRequest extends BaseRequest
     public function messages(): array
     {
         return [
-            'email.required' => 'Email is required.',
-            'email.email' => 'Please provide a valid email address.',
-            'email.unique' => 'This email is already registered.',
-            
-            'password.required' => 'Password is required.',
-            'password.min' => 'Password must be at least 8 characters.',
-            'password.confirmed' => 'Password confirmation does not match.',
-            
-            'password_confirmation.required' => 'Password confirmation is required.',
-            'password_confirmation.min' => 'Password confirmation must be at least 8 characters.',
-            
-            'name.required' => 'Name is required.',
-            'name.min' => 'Name must be at least 2 characters.',
-            'name.max' => 'Name must not exceed 200 characters.',
-            
-            'phone_number.max' => 'Phone number must not exceed 20 characters.',
-            
-            'role.required' => 'Role is required.',
-            'role.in' => 'Role must be either admin or user.',
-            
-            'gender.in' => 'Gender must be male, female, or other.',
+            'email.required' => 'Vui lòng nhập email.',
+            'email.email' => 'Email không hợp lệ.',
+            'email.unique' => 'Email này đã được đăng ký.',
+
+            'password.required' => 'Vui lòng nhập mật khẩu.',
+            'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
+            'password.confirmed' => 'Mật khẩu xác nhận không khớp.',
+
+            'password_confirmation.required' => 'Vui lòng xác nhận mật khẩu.',
+            'password_confirmation.min' => 'Mật khẩu xác nhận phải có ít nhất 8 ký tự.',
+
+            'name.required' => 'Vui lòng nhập họ tên.',
+            'name.min' => 'Họ tên phải có ít nhất 2 ký tự.',
+            'name.max' => 'Họ tên không được vượt quá 200 ký tự.',
+
+            'phone_number.max' => 'Số điện thoại không được vượt quá 20 ký tự.',
+
+            'role.required' => 'Vui lòng chọn vai trò.',
+            'role.in' => 'Vai trò phải là admin hoặc user.',
+
+            'gender.in' => 'Giới tính phải là male, female hoặc other.',
         ];
     }
 }

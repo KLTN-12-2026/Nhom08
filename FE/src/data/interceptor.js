@@ -167,7 +167,7 @@ apiClient.interceptors.response.use(
 
           break;
         case 403:
-          toast.error("Access denied. You do not have permission.");
+          toast.error(response.data?.message || "Access denied. You do not have permission.");
           break;
         case 404:
           toast.error("Resource not found.");

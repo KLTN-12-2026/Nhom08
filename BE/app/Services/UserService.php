@@ -53,7 +53,7 @@ class UserService extends BaseService
         }
 
         $perPage = $request->get('per_page', 15);
-        $users = $query->paginate($perPage);
+        $users = $query->latest('id')->paginate($perPage);
 
         return [
             'users' => UserResource::collection($users->items()),
@@ -151,6 +151,12 @@ class UserService extends BaseService
         }
 
         $user->update($updateData);
+
+        // Bị chặn => thu hồi toàn bộ token đăng nhập
+        if (!empty($updateData['is_blocked'])) {
+            $user->tokens()->delete();
+        }
+
         $user->load(['wallet', 'places', 'reviews', 'posts', 'sentFriendships', 'receivedFriendships']);
 
         return new UserResource($user);
@@ -161,7 +167,10 @@ class UserService extends BaseService
      */
     public function deleteUser(User $user)
     {
-        $user->delete();
+        DB::transaction(function () use ($user) {
+            $user->tokens()->delete();
+            $user->delete();
+        });
     }
 
     /**
@@ -170,6 +179,11 @@ class UserService extends BaseService
     public function toggleUserBlock(User $user)
     {
         $user->update(['is_blocked' => !$user->is_blocked]);
+
+        if ($user->is_blocked) {
+            $user->tokens()->delete();
+        }
+
         $user->load(['wallet', 'places', 'reviews', 'posts', 'sentFriendships', 'receivedFriendships']);
 
         return new UserResource($user);
