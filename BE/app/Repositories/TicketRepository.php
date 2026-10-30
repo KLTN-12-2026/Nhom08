@@ -13,7 +13,7 @@ class TicketRepository extends BaseRepository
 
     public function all(array $params = [])
     {
-        $query = $this->model->newQuery();
+        $query = $this->model->newQuery()->with(['user', 'admin']);
 
         if (isset($params['type']) && $params['type'] !== '' && $params['type'] !== null) {
             $query->where('type', $params['type']);

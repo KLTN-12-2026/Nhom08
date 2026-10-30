@@ -33,6 +33,7 @@ class TicketController extends Controller
     public function show(Ticket $ticket)
     {
         $this->authorize('view', $ticket);
+        $ticket->load(['user', 'admin']);
         return $this->response(new TicketResource($ticket));
     }
 
@@ -44,8 +45,12 @@ class TicketController extends Controller
         $this->authorize('update', $ticket);
         $validated = $request->validate([
             'status' => 'required|string|in:open,in_progress,resolved,closed',
+            'admin_notes' => 'nullable|string',
+            'admin_id' => 'nullable|integer|exists:users,id',
         ]);
-        $ticket = $this->service->updateStatus($ticket->id, $validated['status']);
+        $adminId = $validated['admin_id'] ?? $request->user()?->id;
+        $ticket = $this->service->updateStatus($ticket->id, $validated['status'], $adminId, $validated['admin_notes'] ?? null);
+        $ticket->load(['user', 'admin']);
         return $this->response(new TicketResource($ticket), 'Status updated');
     }
 

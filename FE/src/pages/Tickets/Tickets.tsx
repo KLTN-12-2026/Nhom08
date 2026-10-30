@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Button,
   Table,
@@ -11,9 +11,11 @@ import {
   Select,
   Space,
   Popconfirm,
-  message,
+  Spin,
+  Modal,
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
+import useTicketsStore, { Ticket } from "./TicketsStore.ts";
 import {
   TICKET_TYPE_CONFIG,
   TICKET_STATUS_CONFIG,
@@ -21,165 +23,121 @@ import {
   type TicketStatus,
 } from "./TicketEnums.ts";
 import useLanguageStore from "../../stores/languageStore.ts";
+import toast from "react-hot-toast";
 
 const { TextArea } = Input;
 
-export interface Ticket {
-  id: number;
-  user_id: number;
-  subject: string;
-  description: string;
-  type: TicketTypeEnum;
-  status: TicketStatus;
-  admin_id?: number | null;
-  admin_notes?: string | null;
-  created_at: string;
-  updated_at: string;
-  user?: {
-    id: number;
-    name: string;
-    email?: string;
-  };
-  admin?: {
-    id: number;
-    name: string;
-  };
-}
-
-// Mock Data phục vụ demo UI báo cáo
-const INITIAL_TICKETS: Ticket[] = [
-  {
-    id: 1,
-    user_id: 101,
-    subject: "Lỗi không tìm kiếm được địa điểm theo khu vực",
-    description: "Khi lọc khu vực Quận 1 thì hệ thống tải mãi không ra danh sách địa điểm.",
-    type: TicketTypeEnum.BUG_REPORT,
-    status: "open",
-    admin_id: null,
-    admin_notes: null,
-    created_at: "2026-10-30T09:15:00Z",
-    updated_at: "2026-10-30T09:15:00Z",
-    user: { id: 101, name: "Nguyễn Văn An", email: "an.nguyen@gmail.com" },
-  },
-  {
-    id: 2,
-    user_id: 102,
-    subject: "Đề xuất thêm tính năng lưu hành trình du lịch dạng PDF",
-    description: "Em muốn xuất lịch trình chi tiết ra file PDF hoặc ảnh để dễ dàng chia sẻ cho nhóm bạn.",
-    type: TicketTypeEnum.FEATURE_REQUEST,
-    status: "in_progress",
-    admin_id: 1,
-    admin_notes: "Đã chuyển yêu cầu cho team Mobile & Backend phân tích.",
-    created_at: "2026-10-29T14:20:00Z",
-    updated_at: "2026-10-30T08:00:00Z",
-    user: { id: 102, name: "Trần Thị Bình", email: "binh.tran@gmail.com" },
-    admin: { id: 1, name: "Admin Quản Trị" },
-  },
-  {
-    id: 3,
-    user_id: 103,
-    subject: "Cuối tuần rảnh không admin ơi, đi cafe bàn thêm về app",
-    description: "Thấy ứng dụng Trove hay quá, muốn rủ admin đi làm cốc cafe giao lưu học hỏi kinh nghiệm lập trình.",
-    type: TicketTypeEnum.INVITE_ADMIN,
-    status: "resolved",
-    admin_id: 1,
-    admin_notes: "Đã phản hồi cảm ơn và hẹn giao lưu tại sự kiện cộng đồng.",
-    created_at: "2026-10-28T10:00:00Z",
-    updated_at: "2026-10-29T11:00:00Z",
-    user: { id: 103, name: "Lê Hoàng Cường", email: "cuong.le@gmail.com" },
-    admin: { id: 1, name: "Admin Quản Trị" },
-  },
-  {
-    id: 4,
-    user_id: 104,
-    subject: "Giao diện dark mode một số chỗ bị chìm chữ",
-    description: "Ở trang danh sách bài viết khi bật dark mode thì tiêu đề màu xám hơi khó đọc.",
-    type: TicketTypeEnum.FEEDBACK,
-    status: "in_progress",
-    admin_id: 1,
-    admin_notes: "Đang kiểm tra lại bảng màu Tailwind CSS của theme dark.",
-    created_at: "2026-10-27T16:45:00Z",
-    updated_at: "2026-10-28T09:30:00Z",
-    user: { id: 104, name: "Phạm Minh Dũng", email: "dung.pm@gmail.com" },
-    admin: { id: 1, name: "Admin Quản Trị" },
-  },
-  {
-    id: 5,
-    user_id: 105,
-    subject: "Tốc độ tải ảnh bài viết hơi chậm vào giờ cao điểm",
-    description: "Buổi tối load ảnh trên feed mất tầm 3-5 giây mới hiện đủ ảnh.",
-    type: TicketTypeEnum.COMPLAIN,
-    status: "closed",
-    admin_id: 1,
-    admin_notes: "Đã tối ưu hóa CDN và nén ảnh tự động qua Cloudinary.",
-    created_at: "2026-10-25T19:30:00Z",
-    updated_at: "2026-10-26T15:00:00Z",
-    user: { id: 105, name: "Hoàng Thị Em", email: "em.hoang@gmail.com" },
-    admin: { id: 1, name: "Admin Quản Trị" },
-  },
-];
-
 export default function Tickets() {
   const { t } = useLanguageStore();
+  const {
+    tickets,
+    pagination,
+    ticketDetail,
+    isListLoading,
+    isDetailLoading,
+    isSaving,
+    getTickets,
+    getTicketById,
+    createTicket,
+    updateStatus,
+    deleteTicket,
+  } = useTicketsStore();
 
-  const [ticketsList, setTicketsList] = useState<Ticket[]>(INITIAL_TICKETS);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [typeFilter, setTypeFilter] = useState<number | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<TicketStatus | undefined>(undefined);
+
+  // Modal / Drawer state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
   const [statusForm] = Form.useForm();
+  const [createForm] = Form.useForm();
 
-  // Lọc dữ liệu theo UI
-  const filteredTickets = ticketsList.filter((item) => {
-    if (typeFilter !== undefined && item.type !== typeFilter) return false;
-    if (statusFilter !== undefined && item.status !== statusFilter) return false;
-    return true;
-  });
-
-  const handleTableChange = (pagination: TablePaginationConfig) => {
-    setCurrentPage(pagination.current || 1);
-    setPageSize(pagination.pageSize || 10);
+  const fetchTickets = () => {
+    const params: any = {
+      page: currentPage,
+      per_page: pageSize,
+      type: typeFilter,
+      status: statusFilter,
+    };
+    getTickets(params);
   };
 
-  const handleView = (ticket: Ticket) => {
-    setSelectedTicket(ticket);
+  useEffect(() => {
+    fetchTickets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, pageSize, typeFilter, statusFilter]);
+
+  const handleTableChange = (p: TablePaginationConfig) => {
+    setCurrentPage(p.current || 1);
+    setPageSize(p.pageSize || 10);
+  };
+
+  const handleView = async (id: number) => {
     setIsDrawerOpen(true);
-    statusForm.setFieldsValue({
-      status: ticket.status,
-      admin_notes: ticket.admin_notes || "",
-    });
+    const res = await getTicketById(id);
+    if (res?.success && res.data) {
+      statusForm.setFieldsValue({
+        status: res.data.status,
+        admin_notes: res.data.admin_notes || "",
+      });
+    } else {
+      toast.error("Không thể tải chi tiết vé hỗ trợ");
+    }
   };
 
-  const handleDelete = (id: number) => {
-    setTicketsList((prev) => prev.filter((item) => item.id !== id));
-    message.success("Đã xóa vé hỗ trợ");
+  const handleDelete = async (id: number) => {
+    const res = await deleteTicket(id);
+    if (res?.success) {
+      toast.success("Đã xóa vé hỗ trợ thành công");
+      fetchTickets();
+    } else {
+      toast.error(res?.message || "Xóa vé hỗ trợ thất bại");
+    }
   };
 
   const handleUpdateStatus = async () => {
     try {
       const values = await statusForm.validateFields();
-      if (!selectedTicket) return;
-
-      setTicketsList((prev) =>
-        prev.map((item) =>
-          item.id === selectedTicket.id
-            ? {
-                ...item,
-                status: values.status,
-                admin_notes: values.admin_notes,
-                admin: item.admin || { id: 1, name: "Admin Quản Trị" },
-                updated_at: new Date().toISOString(),
-              }
-            : item
-        )
+      if (!ticketDetail) return;
+      const res = await updateStatus(
+        ticketDetail.id,
+        values.status,
+        values.admin_notes
       );
-
-      message.success("Cập nhật trạng thái thành công");
-      setIsDrawerOpen(false);
+      if (res?.success) {
+        toast.success("Cập nhật trạng thái thành công");
+        setIsDrawerOpen(false);
+        fetchTickets();
+      } else {
+        toast.error(res?.message || "Cập nhật trạng thái thất bại");
+      }
     } catch {
-      // Form validation error
+      // Validate error
+    }
+  };
+
+  const handleCreateTicket = async () => {
+    try {
+      const values = await createForm.validateFields();
+      const res = await createTicket({
+        subject: values.subject,
+        description: values.description,
+        type: values.type,
+      });
+
+      if (res?.success) {
+        toast.success("Tạo vé hỗ trợ mới thành công");
+        setIsCreateModalOpen(false);
+        createForm.resetFields();
+        fetchTickets();
+      } else {
+        toast.error(res?.message || "Tạo vé hỗ trợ thất bại");
+      }
+    } catch {
+      // Validate error
     }
   };
 
@@ -188,7 +146,7 @@ export default function Tickets() {
       title: (
         <span className="flex items-center gap-2">
           <i className="fa-solid fa-ticket text-black"></i>
-          <span className="font-semibold">Ticket</span>
+          <span className="font-semibold">Vé hỗ trợ</span>
         </span>
       ),
       key: "ticket",
@@ -213,13 +171,15 @@ export default function Tickets() {
                 </Tag>
               )}
               <span>
-                {new Date(record.created_at).toLocaleString("vi-VN", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {record.created_at
+                  ? new Date(record.created_at).toLocaleString("vi-VN", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : ""}
               </span>
             </div>
           </div>
@@ -241,7 +201,7 @@ export default function Tickets() {
             <div className="text-xs text-gray-500">{record.user.email || `ID: ${record.user_id}`}</div>
           </div>
         ) : (
-          <Tag>Unknown</Tag>
+          <Tag color="default">ID: {record.user_id}</Tag>
         ),
     },
     {
@@ -253,7 +213,10 @@ export default function Tickets() {
       ),
       key: "status",
       render: (_, record) => {
-        const cfg = TICKET_STATUS_CONFIG[record.status] || { label: record.status, color: "default" };
+        const cfg = TICKET_STATUS_CONFIG[record.status] || {
+          label: record.status,
+          color: "default",
+        };
         return <Tag color={cfg.color}>{cfg.label}</Tag>;
       },
     },
@@ -283,13 +246,14 @@ export default function Tickets() {
             type="text"
             className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
             icon={<i className="fa-solid fa-eye" />}
-            onClick={() => handleView(record)}
+            onClick={() => handleView(record.id)}
           />
           <Popconfirm
             title="Xóa vé hỗ trợ này?"
+            description="Hành động này không thể hoàn tác"
             onConfirm={() => handleDelete(record.id)}
             okText="Xóa"
-            okButtonProps={{ danger: true }}
+            okButtonProps={{ danger: true, loading: isSaving }}
             cancelText="Hủy"
           >
             <Button
@@ -307,7 +271,7 @@ export default function Tickets() {
   const paginationConfig = {
     current: currentPage,
     pageSize: pageSize,
-    total: filteredTickets.length,
+    total: pagination.total || tickets.length,
     showSizeChanger: true,
     showTotal: (total: number, range: [number, number]) =>
       `${range[0]}-${range[1]} của ${total} vé`,
@@ -363,11 +327,29 @@ export default function Tickets() {
                 ))}
               </Select>
             </div>
+
+            <div className="flex items-center gap-3">
+              <Button icon={<i className="fa-solid fa-rotate-right mr-1" />} onClick={() => fetchTickets()}>
+                Tải lại
+              </Button>
+              <Button
+                type="primary"
+                icon={<i className="fa-solid fa-plus text-black mr-1" />}
+                onClick={() => {
+                  createForm.resetFields();
+                  createForm.setFieldsValue({ type: TicketTypeEnum.FEEDBACK });
+                  setIsCreateModalOpen(true);
+                }}
+              >
+                Tạo vé hỗ trợ
+              </Button>
+            </div>
           </div>
 
           <Table
             columns={columns}
-            dataSource={filteredTickets}
+            dataSource={tickets}
+            loading={isListLoading}
             rowKey="id"
             pagination={paginationConfig}
             onChange={handleTableChange}
@@ -376,6 +358,7 @@ export default function Tickets() {
         </div>
       </div>
 
+      {/* Drawer: Xem chi tiết & Cập nhật trạng thái */}
       <Drawer
         title={
           <span className="flex items-center gap-2 text-lg">
@@ -393,21 +376,47 @@ export default function Tickets() {
             <Button
               type="primary"
               onClick={handleUpdateStatus}
+              loading={isSaving}
             >
               Lưu thay đổi
             </Button>
           </div>
         }
       >
-        {selectedTicket && (
+        {isDetailLoading || !ticketDetail ? (
+          <div className="flex justify-center items-center h-40">
+            <Spin tip="Đang tải dữ liệu..." />
+          </div>
+        ) : (
           <>
-            <div className="mb-4">
-              <h3 className="text-lg font-bold mb-1">{selectedTicket.subject}</h3>
-              {selectedTicket.description && (
-                <p className="text-sm text-gray-600 mb-2 whitespace-pre-wrap">
-                  {selectedTicket.description}
+            <div className="mb-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+              <div className="flex items-center gap-2 mb-2">
+                {TICKET_TYPE_CONFIG[ticketDetail.type] && (
+                  <Tag color={TICKET_TYPE_CONFIG[ticketDetail.type].color} className="rounded-full">
+                    <i className={`fa-solid ${TICKET_TYPE_CONFIG[ticketDetail.type].icon} mr-1`}></i>
+                    {TICKET_TYPE_CONFIG[ticketDetail.type].label}
+                  </Tag>
+                )}
+                <Tag color={TICKET_STATUS_CONFIG[ticketDetail.status]?.color || "default"}>
+                  {TICKET_STATUS_CONFIG[ticketDetail.status]?.label || ticketDetail.status}
+                </Tag>
+              </div>
+
+              <h3 className="text-lg font-bold text-gray-900 mb-1">{ticketDetail.subject}</h3>
+              {ticketDetail.description && (
+                <p className="text-sm text-gray-600 whitespace-pre-wrap mt-2 mb-0">
+                  {ticketDetail.description}
                 </p>
               )}
+
+              <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500 flex justify-between">
+                <span>Người gửi: <strong>{ticketDetail.user?.name || `ID: ${ticketDetail.user_id}`}</strong></span>
+                <span>
+                  {ticketDetail.created_at
+                    ? new Date(ticketDetail.created_at).toLocaleString("vi-VN")
+                    : ""}
+                </span>
+              </div>
             </div>
 
             <Form form={statusForm} layout="vertical">
@@ -429,13 +438,62 @@ export default function Tickets() {
                 name="admin_notes"
                 label="Ghi chú admin"
               >
-                <TextArea rows={4} placeholder="Nhập ghi chú xử lý..." />
+                <TextArea rows={4} placeholder="Nhập ghi chú xử lý vé này..." />
               </Form.Item>
             </Form>
           </>
         )}
       </Drawer>
+
+      {/* Modal: Tạo vé hỗ trợ mới (Create) */}
+      <Modal
+        title={
+          <span className="flex items-center gap-2 text-lg">
+            <i className="fa-solid fa-plus text-black"></i>
+            Tạo vé hỗ trợ mới
+          </span>
+        }
+        open={isCreateModalOpen}
+        onCancel={() => setIsCreateModalOpen(false)}
+        onOk={handleCreateTicket}
+        confirmLoading={isSaving}
+        okText="Tạo vé"
+        cancelText="Hủy"
+        destroyOnClose
+      >
+        <Form form={createForm} layout="vertical" className="mt-4">
+          <Form.Item
+            name="subject"
+            label="Tiêu đề yêu cầu"
+            rules={[{ required: true, message: "Vui lòng nhập tiêu đề" }]}
+          >
+            <Input placeholder="Ví dụ: Báo lỗi thanh toán vé, Góp ý tính năng..." />
+          </Form.Item>
+
+          <Form.Item
+            name="type"
+            label="Loại yêu cầu"
+            rules={[{ required: true, message: "Vui lòng chọn loại yêu cầu" }]}
+          >
+            <Select>
+              {Object.entries(TICKET_TYPE_CONFIG).map(([value, cfg]) => (
+                <Select.Option key={value} value={Number(value)}>
+                  <i className={`fa-solid ${cfg.icon} mr-2`} />
+                  {cfg.label}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="description"
+            label="Nội dung chi tiết"
+            rules={[{ required: true, message: "Vui lòng nhập nội dung chi tiết" }]}
+          >
+            <TextArea rows={4} placeholder="Mô tả cụ thể vấn đề hoặc ý kiến đóng góp..." />
+          </Form.Item>
+        </Form>
+      </Modal>
     </>
   );
 }
-
