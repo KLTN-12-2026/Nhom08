@@ -4,6 +4,7 @@ import MainLayout from "./layouts/MainLayout.tsx";
 import HomePage from "./pages/Home/HomePage";
 import Places from "./pages/Places/Places.tsx";
 import Users from "./pages/Users/Users.tsx";
+import Statistics from "./pages/Statistics/Statistics.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -34,6 +35,7 @@ function App() {
                   <Route path="/admin/home" element={<HomePage />} />
                   <Route path="/admin/users" element={<Users />} />
                   <Route path="/admin/places" element={<Places />} />
+                  <Route path="/admin/statistics" element={<Statistics />} />
                   <Route path="*" element={<Navigate to="/admin/places" replace />} />
                 </Routes>
               </MainLayout>
