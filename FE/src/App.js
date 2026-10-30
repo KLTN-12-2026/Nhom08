@@ -5,6 +5,7 @@ import HomePage from "./pages/Home/HomePage";
 import Places from "./pages/Places/Places.tsx";
 import Users from "./pages/Users/Users.tsx";
 import Statistics from "./pages/Statistics/Statistics.tsx";
+import Tickets from "./pages/Tickets/Tickets.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -36,6 +37,8 @@ function App() {
                   <Route path="/admin/users" element={<Users />} />
                   <Route path="/admin/places" element={<Places />} />
                   <Route path="/admin/statistics" element={<Statistics />} />
+                  <Route path="/admin/support" element={<Tickets />} />
+                  <Route path="/admin/tickets" element={<Tickets />} />
                   <Route path="*" element={<Navigate to="/admin/places" replace />} />
                 </Routes>
               </MainLayout>
