@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Button,
   Table,
@@ -9,69 +9,33 @@ import {
   Input,
   Space,
   Popconfirm,
-  message,
+  Spin,
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
+import useCategoriesStore, { Category } from "./CategoriesStore.ts";
 import useLanguageStore from "../../stores/languageStore.ts";
 
 const { TextArea } = Input;
 
-export interface Category {
-  id: number;
-  name: string;
-  display_name: string;
-  description?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-// Dữ liệu mẫu (Mock data) chỉ phục vụ demo UI báo cáo
-const INITIAL_CATEGORIES: Category[] = [
-  {
-    id: 1,
-    name: "cafe",
-    display_name: "Quán cà phê & Trà sữa",
-    description: "Các địa điểm cafe ngắm cảnh, cafe làm việc, acoustic và trà sữa giới trẻ yêu thích.",
-  },
-  {
-    id: 2,
-    name: "restaurant",
-    display_name: "Ẩm thực & Nhà hàng",
-    description: "Nhà hàng ẩm thực vùng miền, buffet, lẩu nướng, món ăn vặt đường phố đặc sắc.",
-  },
-  {
-    id: 3,
-    name: "sightseeing",
-    display_name: "Điểm tham quan & Check-in",
-    description: "Danh lam thắng cảnh, di tích lịch sử, bảo tàng và các góc check-in sống ảo cực hot.",
-  },
-  {
-    id: 4,
-    name: "entertainment",
-    display_name: "Giải trí & Hoạt động",
-    description: "Khu vui chơi giải trí, rạp chiếu phim, bowling, boardgame, workshop trải nghiệm.",
-  },
-  {
-    id: 5,
-    name: "hotel",
-    display_name: "Khách sạn & Homestay",
-    description: "Nơi lưu trú nghỉ dưỡng, khách sạn tiện nghi và homestay ấm cúng cho du khách.",
-  },
-  {
-    id: 6,
-    name: "shopping",
-    display_name: "Mua sắm & Quà lưu niệm",
-    description: "Trung tâm thương mại, chợ đêm, các cửa hàng đặc sản làm quà tặng.",
-  },
-];
-
 export default function Categories() {
   const { t } = useLanguageStore();
+  const {
+    categories,
+    pagination,
+    isListLoading,
+    isDetailLoading,
+    isSaving,
+    isDeleting,
+    getCategories,
+    getCategoryById,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+  } = useCategoriesStore();
 
-  const [categoriesList, setCategoriesList] = useState<Category[]>(INITIAL_CATEGORIES);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -79,20 +43,25 @@ export default function Categories() {
 
   const [form] = Form.useForm();
 
-  // Lọc tìm kiếm theo tên hoặc tên hiển thị
-  const filteredCategories = categoriesList.filter((item) => {
-    if (!searchText) return true;
-    const term = searchText.toLowerCase();
-    return (
-      item.name.toLowerCase().includes(term) ||
-      item.display_name.toLowerCase().includes(term) ||
-      (item.description && item.description.toLowerCase().includes(term))
-    );
-  });
+  const fetchCategories = () => {
+    const params: any = {
+      page: currentPage,
+      per_page: pageSize,
+    };
+    if (searchText) {
+      params.query = searchText;
+    }
+    getCategories(params);
+  };
 
-  const handleTableChange = (pagination: TablePaginationConfig) => {
-    setCurrentPage(pagination.current || 1);
-    setPageSize(pagination.pageSize || 10);
+  useEffect(() => {
+    fetchCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, pageSize, searchText]);
+
+  const handleTableChange = (p: TablePaginationConfig) => {
+    setCurrentPage(p.current || 1);
+    setPageSize(p.pageSize || 10);
   };
 
   const handleSearch = (value: string) => {
@@ -102,47 +71,54 @@ export default function Categories() {
 
   const handleAddCategory = () => {
     setIsEditMode(false);
-    setEditingCategory(null);
+    setEditingId(null);
     form.resetFields();
     setIsDrawerOpen(true);
   };
 
-  const handleEditCategory = (record: Category) => {
+  const handleEditCategory = async (id: number) => {
     setIsEditMode(true);
-    setEditingCategory(record);
+    setEditingId(id);
     form.resetFields();
-    form.setFieldsValue(record);
     setIsDrawerOpen(true);
+
+    const res = await getCategoryById(id);
+    if (res?.success && res.data) {
+      form.setFieldsValue({
+        name: res.data.name,
+        display_name: res.data.display_name,
+        description: res.data.description,
+      });
+    }
   };
 
-  const handleDeleteCategory = (id: number) => {
-    setCategoriesList((prev) => prev.filter((item) => item.id !== id));
-    message.success("Đã xóa danh mục thành công");
+  const handleDeleteCategory = async (id: number) => {
+    const res = await deleteCategory(id);
+    if (res?.success) {
+      if (categories.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      } else {
+        fetchCategories();
+      }
+    }
   };
 
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-
-      if (isEditMode && editingCategory) {
-        setCategoriesList((prev) =>
-          prev.map((item) =>
-            item.id === editingCategory.id ? { ...item, ...values } : item
-          )
-        );
-        message.success("Cập nhật danh mục thành công");
+      let res;
+      if (isEditMode && editingId) {
+        res = await updateCategory(editingId, values);
       } else {
-        const newCat: Category = {
-          id: Date.now(),
-          ...values,
-        };
-        setCategoriesList((prev) => [newCat, ...prev]);
-        message.success("Thêm danh mục mới thành công");
+        res = await createCategory(values);
       }
 
-      setIsDrawerOpen(false);
+      if (res?.success) {
+        setIsDrawerOpen(false);
+        fetchCategories();
+      }
     } catch {
-      // Validate error
+      // Form validation error
     }
   };
 
@@ -200,14 +176,14 @@ export default function Categories() {
             icon={<i className="fa-solid fa-pen-to-square"></i>}
             type="text"
             className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-            onClick={() => handleEditCategory(record)}
+            onClick={() => handleEditCategory(record.id)}
           />
           <Popconfirm
             title="Xóa danh mục này?"
             description="Bạn có chắc muốn xóa danh mục này?"
             onConfirm={() => handleDeleteCategory(record.id)}
             okText="Xóa"
-            okButtonProps={{ danger: true }}
+            okButtonProps={{ danger: true, loading: isDeleting }}
             cancelText="Hủy"
           >
             <Button
@@ -225,7 +201,7 @@ export default function Categories() {
   const paginationConfig = {
     current: currentPage,
     pageSize: pageSize,
-    total: filteredCategories.length,
+    total: pagination.total || categories.length,
     showSizeChanger: true,
     showTotal: (total: number, range: [number, number]) =>
       `${range[0]}-${range[1]} của ${total} danh mục`,
@@ -250,7 +226,7 @@ export default function Categories() {
                 <i className="fa-solid fa-folder text-black text-lg"></i>
               </div>
               <h3 className="text-lg font-bold text-black m-0">
-                Tất cả danh mục <span className="text-gray-400 font-medium text-base">({categoriesList.length})</span>
+                Tất cả danh mục <span className="text-gray-400 font-medium text-base">({pagination.total || categories.length})</span>
               </h3>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
@@ -265,6 +241,9 @@ export default function Categories() {
                 allowClear
                 prefix={<i className="fa-solid fa-magnifying-glass text-gray-400"></i>}
               />
+              <Button icon={<i className="fa-solid fa-rotate-right mr-1" />} onClick={() => fetchCategories()}>
+                Tải lại
+              </Button>
               <Button
                 type="primary"
                 icon={<i className="fa-solid fa-plus text-black"></i>}
@@ -278,7 +257,8 @@ export default function Categories() {
 
           <Table
             columns={columns}
-            dataSource={filteredCategories}
+            dataSource={categories}
+            loading={isListLoading}
             rowKey="id"
             pagination={paginationConfig}
             onChange={handleTableChange}
@@ -301,43 +281,48 @@ export default function Categories() {
         footer={
           <div className="flex justify-end gap-2">
             <Button onClick={() => setIsDrawerOpen(false)}>Hủy</Button>
-            <Button type="primary" onClick={handleSave}>
+            <Button type="primary" onClick={handleSave} loading={isSaving}>
               Lưu thay đổi
             </Button>
           </div>
         }
       >
-        <Form form={form} layout="vertical" className="pt-4">
-          <Form.Item
-            name="name"
-            label="Mã định danh (Slug)"
-            rules={[{ required: true, message: "Vui lòng nhập tên danh mục" }]}
-            extra="Chữ thường, không dấu, không khoảng trắng (Ví dụ: restaurant, hotel, cafe)"
-          >
-            <Input placeholder="e.g., restaurant" />
-          </Form.Item>
+        {isDetailLoading ? (
+          <div className="flex justify-center items-center h-40">
+            <Spin tip="Đang tải dữ liệu..." />
+          </div>
+        ) : (
+          <Form form={form} layout="vertical" className="pt-4">
+            <Form.Item
+              name="name"
+              label="Mã định danh (Slug)"
+              rules={[{ required: true, message: "Vui lòng nhập tên danh mục" }]}
+              extra="Chữ thường, không dấu, không khoảng trắng (Ví dụ: restaurant, hotel, cafe)"
+            >
+              <Input placeholder="e.g., restaurant" />
+            </Form.Item>
 
-          <Form.Item
-            name="display_name"
-            label="Tên hiển thị"
-            rules={[{ required: true, message: "Vui lòng nhập tên hiển thị" }]}
-            extra="Tên danh mục hiển thị tới người dùng trên giao diện"
-          >
-            <Input placeholder="e.g., Nhà hàng & Ẩm thực" />
-          </Form.Item>
+            <Form.Item
+              name="display_name"
+              label="Tên hiển thị"
+              rules={[{ required: true, message: "Vui lòng nhập tên hiển thị" }]}
+              extra="Tên danh mục hiển thị tới người dùng trên giao diện"
+            >
+              <Input placeholder="e.g., Nhà hàng & Ẩm thực" />
+            </Form.Item>
 
-          <Form.Item
-            name="description"
-            label="Mô tả chi tiết"
-          >
-            <TextArea
-              rows={4}
-              placeholder="Nhập mô tả ngắn gọn về danh mục..."
-            />
-          </Form.Item>
-        </Form>
+            <Form.Item
+              name="description"
+              label="Mô tả chi tiết"
+            >
+              <TextArea
+                rows={4}
+                placeholder="Nhập mô tả ngắn gọn về danh mục..."
+              />
+            </Form.Item>
+          </Form>
+        )}
       </Drawer>
     </>
   );
 }
-
