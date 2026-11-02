@@ -2,7 +2,7 @@ import apiClient from "../interceptor";
 
 export const activityGroups = {
     getGroups: async (params = {}) => {
-        const response = await apiClient.get("/activity-groups", { params });
+        const response = await apiClient.get("/admin/activity-groups", { params });
         return response.data;
     },
 
