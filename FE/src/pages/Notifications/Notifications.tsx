@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Button,
   Table,
@@ -11,124 +11,80 @@ import {
   Select,
   Space,
   Popconfirm,
+  Spin,
+  message,
   Modal,
   Radio,
   Switch,
-  message,
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
+import useNotificationsStore, { Notification } from "./NotificationsStore.ts";
 import useLanguageStore from "../../stores/languageStore.ts";
 
 const { TextArea } = Input;
 const { Option } = Select;
 
-export interface NotificationItem {
-  id: number;
-  title: string;
-  content: string;
-  type?: string;
-  user_id?: number | null;
-  user?: { id: number; name: string; email: string } | null;
-  is_broadcast: boolean;
-  created_at: string;
-  updated_at?: string;
-}
-
-interface UserOption {
-  id: number;
-  name: string;
-  email: string;
-}
-
-const INITIAL_USERS: UserOption[] = [
-  { id: 1, name: "Admin Trô Về", email: "admin@trove.vn" },
-  { id: 2, name: "Nguyễn Văn An", email: "an.nguyen@gmail.com" },
-  { id: 3, name: "Trần Thị Mai", email: "mai.tran@gmail.com" },
-  { id: 4, name: "Lê Hoàng Nam", email: "nam.le@gmail.com" },
-  { id: 5, name: "Phạm Thu Hương", email: "huong.pham@gmail.com" },
-  { id: 6, name: "Võ Minh Đức", email: "duc.vo@gmail.com" },
-];
-
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 1,
-    title: "Chào mừng bạn đến với ứng dụng Trô Về!",
-    content: "Khám phá các địa điểm hẹn hò lãng mạn, các quán cà phê chill và tạo lịch trình hẹn hò thú vị ngay hôm nay.",
-    type: "system",
-    user_id: null,
-    user: null,
-    is_broadcast: true,
-    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-  },
-  {
-    id: 2,
-    title: "Bảo trì nâng cấp hệ thống máy chủ định kỳ",
-    content: "Hệ thống sẽ tạm thời gián đoạn trong 30 phút từ 02:00 đến 02:30 sáng ngày mai để bảo trì nâng cấp hiệu năng.",
-    type: "system",
-    user_id: null,
-    user: null,
-    is_broadcast: true,
-    created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-  },
-  {
-    id: 3,
-    title: "Địa điểm 'The Dome Kaffe' của bạn đã được phê duyệt!",
-    content: "Chúc mừng bạn, địa điểm bạn đóng góp đã được ban quản trị xét duyệt và hiển thị công khai trên ứng dụng.",
-    type: "place_approved",
-    user_id: 2,
-    user: { id: 2, name: "Nguyễn Văn An", email: "an.nguyen@gmail.com" },
-    is_broadcast: false,
-    created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-  },
-  {
-    id: 4,
-    title: "Nhắc nhở hoàn thiện hồ sơ cá nhân",
-    content: "Hãy cập nhật thêm sở thích và nhóm hoạt động yêu thích để hệ thống gợi ý điểm hẹn phù hợp nhất với bạn.",
-    type: "reminder",
-    user_id: 3,
-    user: { id: 3, name: "Trần Thị Mai", email: "mai.tran@gmail.com" },
-    is_broadcast: false,
-    created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
-  },
-  {
-    id: 5,
-    title: "Ưu đãi thành viên mới: Giảm 20% khi đặt dịch vụ",
-    content: "Nhập mã TROVE20 để nhận ngay ưu đãi 20% cho lịch hẹn hò đầu tiên tại các đối tác ẩm thực liên kết.",
-    type: "promotion",
-    user_id: null,
-    user: null,
-    is_broadcast: true,
-    created_at: new Date(Date.now() - 3600000 * 72).toISOString(),
-  },
-];
-
 export default function Notifications() {
   const { t } = useLanguageStore();
+  const {
+    getNotifications,
+    getNotificationById,
+    sendToUser,
+    sendToUsers,
+    broadcast,
+    deleteNotification,
+    loadUsers,
+    clearUsersList,
+    notificationsData,
+    notificationDetail,
+    isListLoading,
+    isDetailLoading,
+    isSaving,
+    usersList,
+    isLoadingUsers,
+  } = useNotificationsStore();
 
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const [sendType, setSendType] = useState<"user" | "users" | "broadcast">("user");
-  const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [usersList] = useState<UserOption[]>(INITIAL_USERS);
   const [sendForm] = Form.useForm();
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [currentPage, pageSize]);
+
+  const fetchNotifications = () => {
+    const params: any = {
+      page: currentPage,
+      per_page: pageSize,
+    };
+    getNotifications(params);
+  };
 
   const handleTableChange = (pagination: TablePaginationConfig) => {
     setCurrentPage(pagination.current || 1);
     setPageSize(pagination.pageSize || 10);
   };
 
-  const handleView = (item: NotificationItem) => {
-    setSelectedNotification(item);
-    setIsDrawerOpen(true);
+  const handleView = async (id: number) => {
+    const res = await getNotificationById(id);
+    if (res && (res.success || res.data)) {
+      setIsDrawerOpen(true);
+    } else {
+      message.error("Không thể tải chi tiết thông báo");
+    }
   };
 
-  const handleDelete = (id: number) => {
-    setNotifications((prev) => prev.filter((item) => item.id !== id));
-    message.success("Đã xóa thông báo thành công");
+  const handleDelete = async (id: number) => {
+    const res = await deleteNotification(id);
+    if (res && res.success !== false) {
+      message.success("Đã xóa thông báo thành công");
+      fetchNotifications();
+    } else {
+      message.error(res?.message || "Xóa thông báo thất bại");
+    }
   };
 
   const handleOpenSendModal = () => {
@@ -136,70 +92,72 @@ export default function Notifications() {
     setSendType("user");
     sendForm.resetFields();
     sendForm.setFieldsValue({ push: true });
+    clearUsersList();
+    loadUsers();
+  };
+
+  const handleSearchUsers = (search: string) => {
+    if (!search || search.length < 2) {
+      loadUsers();
+      return;
+    }
+    loadUsers(search);
   };
 
   const handleSendNotification = async () => {
     try {
       const values = await sendForm.validateFields();
-      setIsSubmitting(true);
+      let res;
 
-      setTimeout(() => {
-        const newNotifications: NotificationItem[] = [];
+      if (sendType === "user") {
+        res = await sendToUser({
+          user_id: values.user_id,
+          title: values.title,
+          message: values.message,
+          type: "admin",
+          push: values.push,
+        });
+      } else if (sendType === "users") {
+        res = await sendToUsers({
+          user_ids: values.user_ids,
+          title: values.title,
+          message: values.message,
+          type: "admin",
+          push: values.push,
+        });
+      } else {
+        res = await broadcast({
+          title: values.title,
+          message: values.message,
+          type: "system",
+          push: values.push,
+        });
+      }
 
-        if (sendType === "broadcast") {
-          newNotifications.push({
-            id: Date.now(),
-            title: values.title,
-            content: values.message,
-            type: "broadcast",
-            user_id: null,
-            user: null,
-            is_broadcast: true,
-            created_at: new Date().toISOString(),
-          });
-        } else if (sendType === "user") {
-          const u = usersList.find((usr) => usr.id === values.user_id);
-          newNotifications.push({
-            id: Date.now(),
-            title: values.title,
-            content: values.message,
-            type: "user",
-            user_id: values.user_id,
-            user: u ? { id: u.id, name: u.name, email: u.email } : null,
-            is_broadcast: false,
-            created_at: new Date().toISOString(),
-          });
-        } else if (sendType === "users") {
-          const selectedUserIds: number[] = values.user_ids || [];
-          selectedUserIds.forEach((uid, index) => {
-            const u = usersList.find((usr) => usr.id === uid);
-            newNotifications.push({
-              id: Date.now() + index,
-              title: values.title,
-              content: values.message,
-              type: "user",
-              user_id: uid,
-              user: u ? { id: u.id, name: u.name, email: u.email } : null,
-              is_broadcast: false,
-              created_at: new Date().toISOString(),
-            });
-          });
-        }
-
-        setNotifications((prev) => [...newNotifications, ...prev]);
-        setIsSubmitting(false);
+      if (res && (res.success || res.statusCode === 201 || !res.error)) {
+        message.success("Gửi thông báo thành công");
         setIsSendModalOpen(false);
         sendForm.resetFields();
-        message.success(
-          `Gửi thông báo thành công! ${values.push ? "(Đã gửi kèm push notification)" : ""}`
-        );
-      }, 400);
+        fetchNotifications();
+      } else {
+        message.error(res?.message || "Gửi thông báo thất bại");
+      }
     } catch (error) {
-      setIsSubmitting(false);
+      console.error("Error sending notification:", error);
     }
   };
 
-  const columns: ColumnsType<NotificationItem> = [
+  // Safely extract table data array & pagination metadata
+  const listItems: Notification[] = Array.isArray(notificationsData)
+    ? notificationsData
+    : notificationsData?.data || notificationsData?.notifications || [];
+
+  const totalItems =
+    notificationsData?.total ||
+    notificationsData?.pagination?.total ||
+    listItems.length;
+
+  const columns: ColumnsType<Notification> = [
     {
       title: (
         <span className="flex items-center gap-2">
@@ -211,15 +169,19 @@ export default function Notifications() {
       render: (_, record) => (
         <div className="flex flex-col gap-1">
           <div className="font-semibold text-gray-900 dark:text-gray-100">{record.title}</div>
-          <div className="text-xs text-gray-500 line-clamp-2">{record.content}</div>
+          <div className="text-xs text-gray-500 line-clamp-2">
+            {record.message || record.content}
+          </div>
           <div className="text-xs text-gray-400">
-            {new Date(record.created_at).toLocaleString("vi-VN", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {record.created_at
+              ? new Date(record.created_at).toLocaleString("vi-VN", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "N/A"}
           </div>
         </div>
       ),
@@ -234,17 +196,17 @@ export default function Notifications() {
       key: "recipient",
       width: 240,
       render: (_, record) => {
-        if (record.is_broadcast) {
+        if (record.is_broadcast || !record.user_id) {
           return <Tag color="blue">{t("notifications.allUsers") || "Tất cả người dùng"}</Tag>;
         } else if (record.user) {
           return (
             <div className="space-y-1 text-sm">
               <div className="font-medium text-gray-900 dark:text-gray-100">{record.user.name}</div>
-              <div className="text-xs text-gray-500">{record.user.email}</div>
+              <div className="text-xs text-gray-500">{record.user.email || record.user.username}</div>
             </div>
           );
         } else {
-          return <Tag>N/A</Tag>;
+          return <Tag color="cyan">User #{record.user_id}</Tag>;
         }
       },
     },
@@ -258,7 +220,7 @@ export default function Notifications() {
       key: "type",
       width: 140,
       render: (_, record) => {
-        if (record.is_broadcast) {
+        if (record.is_broadcast || !record.user_id) {
           return <Tag color="purple">Broadcast</Tag>;
         } else if (record.user_id) {
           return <Tag color="green">{t("notifications.individual") || "Cá nhân"}</Tag>;
@@ -277,7 +239,7 @@ export default function Notifications() {
             type="text"
             className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
             icon={<i className="fa-solid fa-eye" />}
-            onClick={() => handleView(record)}
+            onClick={() => handleView(record.id)}
           />
           <Popconfirm
             title={t("notifications.deleteConfirm") || "Bạn có chắc muốn xóa thông báo này?"}
@@ -300,7 +262,7 @@ export default function Notifications() {
   const paginationConfig = {
     current: currentPage,
     pageSize: pageSize,
-    total: notifications.length,
+    total: totalItems,
     showSizeChanger: true,
     showTotal: (total: number, range: [number, number]) =>
       `${range[0]}-${range[1]} của ${total} thông báo`,
@@ -336,7 +298,8 @@ export default function Notifications() {
 
           <Table
             columns={columns}
-            dataSource={notifications}
+            dataSource={listItems}
+            loading={isListLoading}
             rowKey="id"
             pagination={paginationConfig}
             onChange={handleTableChange}
@@ -355,17 +318,21 @@ export default function Notifications() {
         }
         open={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        width={540}
+        width={560}
         destroyOnClose
       >
-        {selectedNotification && (
+        {isDetailLoading || !notificationDetail ? (
+          <div className="flex justify-center items-center h-40">
+            <Spin tip="Đang tải..." />
+          </div>
+        ) : (
           <div className="space-y-5">
             <div>
               <span className="text-xs uppercase tracking-wider text-gray-400 font-semibold">
                 Tiêu đề
               </span>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mt-1">
-                {selectedNotification.title}
+                {notificationDetail.title}
               </h3>
             </div>
 
@@ -374,7 +341,7 @@ export default function Notifications() {
                 Nội dung
               </span>
               <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap mt-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
-                {selectedNotification.content}
+                {notificationDetail.message || notificationDetail.content}
               </p>
             </div>
 
@@ -382,25 +349,35 @@ export default function Notifications() {
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500">Hình thức gửi:</span>
                 <span>
-                  {selectedNotification.is_broadcast ? (
+                  {notificationDetail.is_broadcast || !notificationDetail.user_id ? (
                     <Tag color="purple">Broadcast (Tất cả người dùng)</Tag>
                   ) : (
-                    <Tag color="green">Gửi đích danh</Tag>
+                    <Tag color="green">Gửi cá nhân</Tag>
                   )}
                 </span>
               </div>
-              {selectedNotification.user && (
+              {notificationDetail.user && (
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-500">Người nhận:</span>
                   <span className="font-semibold text-gray-800 dark:text-gray-200">
-                    {selectedNotification.user.name} ({selectedNotification.user.email})
+                    {notificationDetail.user.name} ({notificationDetail.user.email || notificationDetail.user.username})
+                  </span>
+                </div>
+              )}
+              {notificationDetail.user_id && !notificationDetail.user && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">Mã người nhận (User ID):</span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    #{notificationDetail.user_id}
                   </span>
                 </div>
               )}
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500">Thời gian tạo:</span>
                 <span className="text-gray-700 dark:text-gray-300">
-                  {new Date(selectedNotification.created_at).toLocaleString("vi-VN")}
+                  {notificationDetail.created_at
+                    ? new Date(notificationDetail.created_at).toLocaleString("vi-VN")
+                    : "N/A"}
                 </span>
               </div>
             </div>
@@ -420,6 +397,7 @@ export default function Notifications() {
         onCancel={() => {
           setIsSendModalOpen(false);
           sendForm.resetFields();
+          clearUsersList();
         }}
         footer={[
           <Button key="cancel" onClick={() => setIsSendModalOpen(false)}>
@@ -429,7 +407,7 @@ export default function Notifications() {
             key="send"
             type="primary"
             onClick={handleSendNotification}
-            loading={isSubmitting}
+            loading={isSaving}
           >
             Gửi thông báo
           </Button>,
@@ -441,11 +419,15 @@ export default function Notifications() {
             <Radio.Group
               value={sendType}
               onChange={(e) => {
-                setSendType(e.target.value);
+                const newType = e.target.value;
+                setSendType(newType);
                 sendForm.setFieldsValue({
                   user_id: undefined,
                   user_ids: undefined,
                 });
+                if ((newType === "user" || newType === "users") && usersList.length === 0) {
+                  loadUsers();
+                }
               }}
             >
               <Radio value="user">1 người dùng</Radio>
@@ -463,7 +445,10 @@ export default function Notifications() {
               <Select
                 showSearch
                 placeholder="Tìm kiếm người dùng..."
-                optionFilterProp="children"
+                filterOption={false}
+                onSearch={handleSearchUsers}
+                loading={isLoadingUsers}
+                notFoundContent={isLoadingUsers ? <Spin size="small" /> : "Không tìm thấy người dùng"}
               >
                 {usersList.map((user) => (
                   <Option key={user.id} value={user.id}>
@@ -483,8 +468,11 @@ export default function Notifications() {
               <Select
                 mode="multiple"
                 showSearch
-                placeholder="Chọn người dùng..."
-                optionFilterProp="children"
+                placeholder="Tìm kiếm và chọn nhiều người dùng..."
+                filterOption={false}
+                onSearch={handleSearchUsers}
+                loading={isLoadingUsers}
+                notFoundContent={isLoadingUsers ? <Spin size="small" /> : "Không tìm thấy người dùng"}
               >
                 {usersList.map((user) => (
                   <Option key={user.id} value={user.id}>
@@ -534,4 +522,3 @@ export default function Notifications() {
     </>
   );
 }
-
