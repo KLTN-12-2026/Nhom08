@@ -10,6 +10,7 @@ import Categories from "./pages/Categories/Categories.tsx";
 import ActivityGroups from "./pages/ActivityGroups/ActivityGroups.tsx";
 import Quotes from "./pages/Quotes/Quotes.tsx";
 import Notifications from "./pages/Notifications/Notifications.tsx";
+import Announcements from "./pages/Announcements/Announcements.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -47,6 +48,7 @@ function App() {
                   <Route path="/admin/activity-groups" element={<ActivityGroups />} />
                   <Route path="/admin/quotes" element={<Quotes />} />
                   <Route path="/admin/notifications" element={<Notifications />} />
+                  <Route path="/admin/announcements" element={<Announcements />} />
                   <Route path="*" element={<Navigate to="/admin/places" replace />} />
                 </Routes>
               </MainLayout>
