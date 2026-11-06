@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Button,
     Table,
@@ -8,115 +8,54 @@ import {
     Drawer,
     Form,
     Input,
+    Spin,
+    message,
     Space,
     Popconfirm,
     Switch,
     Badge,
-    message,
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
+import useTagsStore, { Tag } from "./TagsStore.ts";
 import useLanguageStore from "../../stores/languageStore.ts";
-
-const { TextArea } = Input;
-
-export interface TagItem {
-    id: number;
-    name: string;
-    display_name: string;
-    description?: string;
-    color?: string;
-    icon?: string;
-    usage_count?: number;
-    is_active: boolean;
-    created_at?: string;
-    updated_at?: string;
-}
-
-const INITIAL_TAGS: TagItem[] = [
-    {
-        id: 1,
-        name: "romantic",
-        display_name: "Lãng mạn",
-        description: "Không gian riêng tư, ấm cúng, thích hợp cho các buổi hẹn hò của cặp đôi.",
-        color: "#FCE7F3",
-        icon: "fa-solid fa-heart",
-        usage_count: 38,
-        is_active: true,
-    },
-    {
-        id: 2,
-        name: "chill-view",
-        display_name: "View Chill & Hoàng hôn",
-        description: "Tầm nhìn trên cao, ngắm hoàng hôn hoặc thành phố về đêm cực đẹp.",
-        color: "#FEF3C7",
-        icon: "fa-solid fa-mountain-sun",
-        usage_count: 54,
-        is_active: true,
-    },
-    {
-        id: 3,
-        name: "coffee-work",
-        display_name: "Cà phê làm việc",
-        description: "Yên tĩnh, bàn ghế chuẩn, có nhiều ổ cắm điện và wifi tốc độ cao.",
-        color: "#E0E7FF",
-        icon: "fa-solid fa-laptop",
-        usage_count: 27,
-        is_active: true,
-    },
-    {
-        id: 4,
-        name: "nightlife",
-        display_name: "Chill Bar & Pub",
-        description: "Nhạc nhẹ nhàng acoustic hoặc jazz, cocktail sáng tạo.",
-        color: "#EDE9FE",
-        icon: "fa-solid fa-martini-glass-citrus",
-        usage_count: 19,
-        is_active: true,
-    },
-    {
-        id: 5,
-        name: "outdoor",
-        display_name: "Không gian ngoài trời",
-        description: "Nhiều cây xanh, thoáng mát, gần gũi với thiên nhiên.",
-        color: "#DCFCE7",
-        icon: "fa-solid fa-tree",
-        usage_count: 42,
-        is_active: true,
-    },
-    {
-        id: 6,
-        name: "budget-friendly",
-        display_name: "Giá cả sinh viên",
-        description: "Chi phí vừa phải, đồ uống chất lượng hợp túi tiền.",
-        color: "#FFEDD5",
-        icon: "fa-solid fa-wallet",
-        usage_count: 65,
-        is_active: true,
-    },
-    {
-        id: 7,
-        name: "pet-friendly",
-        display_name: "Thân thiện thú cưng",
-        description: "Cho phép mang theo chó mèo hoặc thú cưng vào quán.",
-        color: "#F3E8FF",
-        icon: "fa-solid fa-paw",
-        usage_count: 14,
-        is_active: false,
-    },
-];
 
 export default function Tags() {
     const { t } = useLanguageStore();
+    const {
+        getTags,
+        getTagById,
+        createTag,
+        updateTag,
+        deleteTag,
+        tagsData,
+        tagData,
+        isListLoading,
+        isDetailLoading,
+        isSaving,
+    } = useTagsStore();
 
-    const [tags, setTags] = useState<TagItem[]>(INITIAL_TAGS);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
-    const [searchText, setSearchText] = useState("");
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
-    const [isSaving, setIsSaving] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    const [searchText, setSearchText] = useState("");
     const [form] = Form.useForm();
+
+    useEffect(() => {
+        fetchTags();
+    }, [currentPage, pageSize, searchText]);
+
+    const fetchTags = () => {
+        const params: any = {
+            page: currentPage,
+            per_page: pageSize,
+        };
+        if (searchText) {
+            params.search = searchText;
+        }
+        getTags(params);
+    };
 
     const handleTableChange = (pagination: TablePaginationConfig) => {
         setCurrentPage(pagination.current || 1);
@@ -134,90 +73,67 @@ export default function Tags() {
         form.resetFields();
         form.setFieldsValue({
             display: true,
-            color: "#FEF3C7",
-            icon: "fa-solid fa-tag",
         });
         setIsDrawerOpen(true);
     };
 
-    const handleEditTag = (record: TagItem) => {
+    const handleEditTag = async (id: number) => {
         setIsEditMode(true);
-        setEditingId(record.id);
-        form.resetFields();
-        form.setFieldsValue({
-            name: record.name,
-            display_name: record.display_name,
-            description: record.description,
-            color: record.color,
-            icon: record.icon,
-            display: record.is_active,
-        });
+        setEditingId(id);
         setIsDrawerOpen(true);
+        form.resetFields();
+        const result = await getTagById(id);
+        if (result.success && result.data) {
+            const item = result.data.data;
+            form.setFieldsValue({
+                name: item.name,
+                display: item.display !== undefined ? Boolean(item.display) : (item.is_active ?? true),
+            });
+        } else {
+            message.error(result.error || "Không thể tải chi tiết thẻ");
+        }
     };
 
-    const handleDeleteTag = (id: number) => {
-        setTags((prev) => prev.filter((item) => item.id !== id));
-        message.success("Đã xóa thẻ thành công");
+    const handleDeleteTag = async (id: number) => {
+        const result = await deleteTag(id);
+        if (result.success) {
+            message.success("Đã xóa thẻ thành công");
+            fetchTags();
+        } else {
+            message.error(result.error || "Xóa thẻ thất bại");
+        }
     };
 
     const handleSave = async () => {
         try {
             const values = await form.validateFields();
-            setIsSaving(true);
 
-            setTimeout(() => {
-                if (isEditMode && editingId) {
-                    setTags((prev) =>
-                        prev.map((t) =>
-                            t.id === editingId
-                                ? {
-                                      ...t,
-                                      name: values.name,
-                                      display_name: values.display_name || values.name,
-                                      description: values.description,
-                                      color: values.color || t.color || "#FEF3C7",
-                                      icon: values.icon || t.icon || "fa-solid fa-tag",
-                                      is_active: values.display !== undefined ? values.display : true,
-                                  }
-                                : t
-                        )
-                    );
-                    message.success("Cập nhật thẻ thành công");
-                } else {
-                    const newTag: TagItem = {
-                        id: Date.now(),
-                        name: values.name,
-                        display_name: values.display_name || values.name,
-                        description: values.description || "",
-                        color: values.color || "#FEF3C7",
-                        icon: values.icon || "fa-solid fa-tag",
-                        usage_count: 0,
-                        is_active: values.display !== undefined ? values.display : true,
-                    };
-                    setTags((prev) => [newTag, ...prev]);
-                    message.success("Tạo thẻ mới thành công");
-                }
+            let result;
+            if (isEditMode && editingId) {
+                result = await updateTag(editingId, {
+                    name: values.name.trim().toLowerCase(),
+                    display: values.display,
+                });
+            } else {
+                result = await createTag({
+                    name: values.name.trim().toLowerCase(),
+                    display: values.display,
+                });
+            }
 
-                setIsSaving(false);
+            if (result.success) {
+                message.success(isEditMode ? "Cập nhật thẻ thành công" : "Tạo thẻ mới thành công");
                 setIsDrawerOpen(false);
-                form.resetFields();
-            }, 300);
-        } catch {
-            setIsSaving(false);
+                fetchTags();
+            } else {
+                message.error(result.error || "Lưu thẻ thất bại");
+            }
+        } catch (err) {
+            console.error("Form validation error:", err);
         }
     };
 
-    const filteredTags = tags.filter((item) => {
-        if (!searchText) return true;
-        const q = searchText.toLowerCase();
-        return (
-            item.name.toLowerCase().includes(q) ||
-            item.display_name.toLowerCase().includes(q) ||
-            (item.description && item.description.toLowerCase().includes(q))
-        );
-    });
-
-    const columns: ColumnsType<TagItem> = [
+    const columns: ColumnsType<Tag> = [
         {
             title: (
                 <span className="flex items-center gap-2">
@@ -226,42 +142,28 @@ export default function Tags() {
                 </span>
             ),
             key: "tag_info",
-            render: (_, record) => (
-                <div className="flex items-center gap-3">
-                    <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm"
-                        style={{
-                            backgroundColor: record.color || "#FEF3C7",
-                            border: "2px solid #FFCB37",
-                        }}
-                    >
-                        {record.icon ? (
-                            <i className={`${record.icon} text-lg`} style={{ color: "#000" }}></i>
-                        ) : (
-                            <i className="fa-solid fa-tag text-amber-600"></i>
-                        )}
-                    </div>
-                    <div>
-                        <div className="font-semibold text-gray-900 dark:text-gray-100">
-                            {record.display_name}
+            render: (_, record) => {
+                const displayName = record.display_name || record.name;
+                return (
+                    <div className="flex items-center gap-3">
+                        <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm"
+                            style={{
+                                backgroundColor: record.color || "#FEF3C7",
+                                border: "2px solid #FFCB37",
+                            }}
+                        >
+                            <i className={record.icon || "fa-solid fa-tag"} style={{ color: "#000" }}></i>
                         </div>
-                        <div className="text-xs text-gray-500 font-mono">#{record.name}</div>
+                        <div>
+                            <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                {displayName}
+                            </div>
+                            <div className="text-xs text-gray-500 font-mono">#{record.name}</div>
+                        </div>
                     </div>
-                </div>
-            ),
-        },
-        {
-            title: (
-                <span className="flex items-center gap-2">
-                    <i className="fa-solid fa-align-left text-black dark:text-white"></i>
-                    <span className="font-semibold">{t("tags.description") || "Mô tả"}</span>
-                </span>
-            ),
-            dataIndex: "description",
-            key: "description",
-            render: (text) => (
-                <span className="text-gray-600 dark:text-gray-400 line-clamp-2">{text || "—"}</span>
-            ),
+                );
+            },
         },
         {
             title: (
@@ -273,7 +175,7 @@ export default function Tags() {
             dataIndex: "usage_count",
             key: "usage_count",
             align: "center",
-            width: 160,
+            width: 180,
             render: (count) => (
                 <Badge
                     count={count || 0}
@@ -286,12 +188,12 @@ export default function Tags() {
             title: (
                 <span className="flex items-center gap-2">
                     <i className="fa-solid fa-circle-check text-black dark:text-white"></i>
-                    <span className="font-semibold">{t("tags.status") || "Trạng thái"}</span>
+                    <span className="font-semibold">{t("tags.status") || "Trạng thái hiển thị"}</span>
                 </span>
             ),
             dataIndex: "is_active",
             key: "is_active",
-            width: 160,
+            width: 180,
             render: (is_active: boolean) => (
                 <AntTag
                     icon={
@@ -318,7 +220,7 @@ export default function Tags() {
                         icon={<i className="fa-solid fa-pen-to-square"></i>}
                         type="text"
                         className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                        onClick={() => handleEditTag(record)}
+                        onClick={() => handleEditTag(record.id)}
                     />
                     <Popconfirm
                         title="Xóa thẻ này?"
@@ -339,10 +241,13 @@ export default function Tags() {
         },
     ];
 
+    const listItems = tagsData?.data || [];
+    const totalItems = tagsData?.total || listItems.length;
+
     const paginationConfig = {
         current: currentPage,
         pageSize: pageSize,
-        total: filteredTags.length,
+        total: totalItems,
         showSizeChanger: true,
         showTotal: (total: number, range: [number, number]) =>
             `${range[0]}-${range[1]} của ${total} thẻ`,
@@ -371,7 +276,7 @@ export default function Tags() {
                                 <i className="fa-solid fa-tags text-lg"></i>
                             </div>
                             <h3 className="text-lg font-bold text-black dark:text-white m-0">
-                                Tất cả thẻ ({filteredTags.length})
+                                Tất cả thẻ ({totalItems})
                             </h3>
                         </div>
                         <div className="flex items-center gap-3">
@@ -393,7 +298,8 @@ export default function Tags() {
                     </div>
                     <Table
                         columns={columns}
-                        dataSource={filteredTags}
+                        dataSource={listItems}
+                        loading={isListLoading}
                         rowKey="id"
                         pagination={paginationConfig}
                         onChange={handleTableChange}
@@ -410,7 +316,7 @@ export default function Tags() {
                 }
                 open={isDrawerOpen}
                 onClose={() => setIsDrawerOpen(false)}
-                width={520}
+                width={480}
                 destroyOnClose
                 footer={
                     <div className="flex justify-end gap-2">
@@ -421,49 +327,35 @@ export default function Tags() {
                     </div>
                 }
             >
-                <Form form={form} layout="vertical" className="pt-2">
-                    <Form.Item
-                        name="name"
-                        label="Mã định danh thẻ (Slug)"
-                        rules={[{ required: true, message: "Vui lòng nhập tên thẻ" }]}
-                        extra="Chữ thường, không dấu, ngăn cách bằng gạch nối (Ví dụ: romantic, chill-view, outdoor)"
-                    >
-                        <Input placeholder="romantic" />
-                    </Form.Item>
-
-                    <Form.Item
-                        name="display_name"
-                        label="Tên hiển thị"
-                        rules={[{ required: true, message: "Vui lòng nhập tên hiển thị" }]}
-                    >
-                        <Input placeholder="Ví dụ: Lãng mạn, View Chill..." />
-                    </Form.Item>
-
-                    <Form.Item name="description" label="Mô tả thẻ">
-                        <TextArea rows={3} placeholder="Mô tả ý nghĩa của thẻ hoặc tiêu chí gắn địa điểm..." />
-                    </Form.Item>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <Form.Item name="icon" label="Biểu tượng FontAwesome">
-                            <Input placeholder="fa-solid fa-heart" />
-                        </Form.Item>
-
-                        <Form.Item name="color" label="Màu nền Badge">
-                            <Input placeholder="#FEF3C7" />
-                        </Form.Item>
+                {isDetailLoading ? (
+                    <div className="flex justify-center items-center h-40">
+                        <Spin tip="Đang tải dữ liệu thẻ..." />
                     </div>
+                ) : (
+                    <Form form={form} layout="vertical" className="pt-2">
+                        <Form.Item
+                            name="name"
+                            label="Tên định danh thẻ (Slug)"
+                            rules={[
+                                { required: true, message: "Vui lòng nhập tên thẻ" },
+                                { max: 100, message: "Tên thẻ không được vượt quá 100 ký tự" },
+                            ]}
+                            extra="Dùng chữ thường không dấu, không khoảng trắng (Ví dụ: romantic, chill, coffee, outdoor)"
+                        >
+                            <Input placeholder="romantic" />
+                        </Form.Item>
 
-                    <Form.Item
-                        name="display"
-                        label="Trạng thái hiển thị"
-                        valuePropName="checked"
-                        extra="Bật để cho phép gắn thẻ vào địa điểm và hiển thị trên ứng dụng"
-                    >
-                        <Switch defaultChecked />
-                    </Form.Item>
-                </Form>
+                        <Form.Item
+                            name="display"
+                            label="Trạng thái hiển thị"
+                            valuePropName="checked"
+                            extra="Cho phép hiển thị và gắn thẻ này vào các địa điểm"
+                        >
+                            <Switch defaultChecked />
+                        </Form.Item>
+                    </Form>
+                )}
             </Drawer>
         </>
     );
 }
-
