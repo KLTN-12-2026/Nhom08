@@ -11,6 +11,7 @@ import ActivityGroups from "./pages/ActivityGroups/ActivityGroups.tsx";
 import Quotes from "./pages/Quotes/Quotes.tsx";
 import Notifications from "./pages/Notifications/Notifications.tsx";
 import Announcements from "./pages/Announcements/Announcements.tsx";
+import Tags from "./pages/Tags/Tags.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -44,6 +45,7 @@ function App() {
                   <Route path="/admin/statistics" element={<Statistics />} />
                   <Route path="/admin/support" element={<Tickets />} />
                   <Route path="/admin/tickets" element={<Tickets />} />
+                  <Route path="/admin/tags" element={<Tags />} />
                   <Route path="/admin/categories" element={<Categories />} />
                   <Route path="/admin/activity-groups" element={<ActivityGroups />} />
                   <Route path="/admin/quotes" element={<Quotes />} />
