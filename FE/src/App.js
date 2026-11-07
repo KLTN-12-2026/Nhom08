@@ -13,6 +13,11 @@ import Notifications from "./pages/Notifications/Notifications.tsx";
 import Announcements from "./pages/Announcements/Announcements.tsx";
 import Tags from "./pages/Tags/Tags.tsx";
 import Settings from "./pages/Settings/Settings.tsx";
+import CashFlow from "./pages/CashFlow/CashFlow.tsx";
+import Subscriptions from "./pages/Subscriptions/Subscriptions.tsx";
+import Dashboard from "./pages/Dashboard/Dashboard.tsx";
+import PublicPlaces from "./pages/PublicPlaces/PublicPlaces.tsx";
+import NotFound from "./pages/NotFound/NotFound.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -53,6 +58,11 @@ function App() {
                   <Route path="/admin/notifications" element={<Notifications />} />
                   <Route path="/admin/announcements" element={<Announcements />} />
                   <Route path="/admin/settings" element={<Settings />} />
+                  <Route path="/admin/cashflow" element={<CashFlow />} />
+                  <Route path="/admin/subscriptions" element={<Subscriptions />} />
+                  <Route path="/admin/dashboard" element={<Dashboard />} />
+                  <Route path="/admin/public-places" element={<PublicPlaces />} />
+                  <Route path="/404" element={<NotFound />} />
                   <Route path="*" element={<Navigate to="/admin/places" replace />} />
                 </Routes>
               </MainLayout>
