@@ -12,6 +12,7 @@ import Quotes from "./pages/Quotes/Quotes.tsx";
 import Notifications from "./pages/Notifications/Notifications.tsx";
 import Announcements from "./pages/Announcements/Announcements.tsx";
 import Tags from "./pages/Tags/Tags.tsx";
+import Settings from "./pages/Settings/Settings.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -51,6 +52,7 @@ function App() {
                   <Route path="/admin/quotes" element={<Quotes />} />
                   <Route path="/admin/notifications" element={<Notifications />} />
                   <Route path="/admin/announcements" element={<Announcements />} />
+                  <Route path="/admin/settings" element={<Settings />} />
                   <Route path="*" element={<Navigate to="/admin/places" replace />} />
                 </Routes>
               </MainLayout>
