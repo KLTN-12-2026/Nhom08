@@ -19,6 +19,8 @@ import Dashboard from "./pages/Dashboard/Dashboard.tsx";
 import PublicPlaces from "./pages/PublicPlaces/PublicPlaces.tsx";
 import NotFound from "./pages/NotFound/NotFound.tsx";
 import CustomerAuth from "./pages/Customer/CustomerAuth.tsx";
+import CustomerLayout from "./layouts/CustomerLayout.tsx";
+import Home from "./pages/Home/Home.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -38,6 +40,15 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Customer Public Routes */}
+        <Route
+          path="/"
+          element={
+            <CustomerLayout>
+              <Home />
+            </CustomerLayout>
+          }
+        />
         <Route path="/login" element={<CustomerAuth />} />
         <Route path="/register" element={<CustomerAuth />} />
         <Route path="/admin/login" element={<Login />} />
