@@ -18,6 +18,7 @@ import Subscriptions from "./pages/Subscriptions/Subscriptions.tsx";
 import Dashboard from "./pages/Dashboard/Dashboard.tsx";
 import PublicPlaces from "./pages/PublicPlaces/PublicPlaces.tsx";
 import NotFound from "./pages/NotFound/NotFound.tsx";
+import CustomerAuth from "./pages/Customer/CustomerAuth.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -37,6 +38,8 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/login" element={<CustomerAuth />} />
+        <Route path="/register" element={<CustomerAuth />} />
         <Route path="/admin/login" element={<Login />} />
         <Route
           path="/*"
