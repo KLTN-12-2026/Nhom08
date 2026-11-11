@@ -3,8 +3,6 @@
 namespace App\Http\Requests\Auth;
 
 use App\Http\Requests\BaseRequest;
-use App\Rules\OnlyEmailRule;
-use App\Rules\OnlyLettersAndSpacesRule;
 use Illuminate\Validation\Rule;
 
 class CreateUserRequest extends BaseRequest
@@ -27,33 +25,33 @@ class CreateUserRequest extends BaseRequest
         return [
             'email' => [
                 'required',
-                'email',
+                'string',
+                'email:rfc,dns',
+                'max:255',
                 'unique:users,email',
-                new OnlyEmailRule()
             ],
             'password' => [
                 'required',
                 'string',
-                'min:8',
-                'confirmed'
+                'min:6',
+                'confirmed',
             ],
             'password_confirmation' => [
                 'required',
                 'string',
-                'min:8'
+                'min:6',
             ],
             'name' => [
                 'required',
                 'string',
                 'min:2',
                 'max:200',
-                new OnlyLettersAndSpacesRule()
             ],
             'phone_number' => [
                 'nullable',
                 'string',
-                'max:20'
-            ]
+                'max:20',
+            ],
         ];
     }
 
@@ -65,22 +63,19 @@ class CreateUserRequest extends BaseRequest
     public function messages(): array
     {
         return [
-            'email.required' => 'Email is required.',
-            'email.email' => 'Please provide a valid email address.',
-            'email.unique' => 'This email is already registered.',
-            
-            'password.required' => 'Password is required.',
-            'password.min' => 'Password must be at least 8 characters.',
-            'password.confirmed' => 'Password confirmation does not match.',
-            
-            'password_confirmation.required' => 'Password confirmation is required.',
-            'password_confirmation.min' => 'Password confirmation must be at least 8 characters.',
-            
-            'name.required' => 'Name is required.',
-            'name.min' => 'Name must be at least 2 characters.',
-            'name.max' => 'Name must not exceed 200 characters.',
-            
-            'phone_number.max' => 'Phone number must not exceed 20 characters.'
+            'email.required' => 'Vui lòng nhập địa chỉ email.',
+            'email.email' => 'Địa chỉ email không đúng định dạng.',
+            'email.unique' => 'Email này đã được đăng ký tài khoản trong hệ thống.',
+            'password.required' => 'Vui lòng nhập mật khẩu.',
+            'password.min' => 'Mật khẩu phải chứa ít nhất 6 ký tự.',
+            'password.confirmed' => 'Mật khẩu xác nhận không trùng khớp.',
+            'password_confirmation.required' => 'Vui lòng xác nhận lại mật khẩu.',
+            'password_confirmation.min' => 'Mật khẩu xác nhận phải chứa ít nhất 6 ký tự.',
+            'name.required' => 'Vui lòng nhập họ và tên của bạn.',
+            'name.min' => 'Họ và tên phải có ít nhất 2 ký tự.',
+            'name.max' => 'Họ và tên không được vượt quá 200 ký tự.',
+            'phone_number.max' => 'Số điện thoại không được vượt quá 20 ký tự.',
         ];
     }
 }
+

@@ -70,17 +70,47 @@ export default function CustomerAuth() {
   const onFinishRegister = async (values: any) => {
     setLoading(true);
     try {
-      await RepositoryManager.auth.register({
-        name: values.name,
-        email: values.email,
+      const response = await RepositoryManager.auth.register({
+        name: values.name.trim(),
+        email: values.email.trim(),
         password: values.password,
         password_confirmation: values.confirmPassword,
       });
-      message.success(t("auth.registerSuccess"));
-      setIsLogin(true);
+
+      const resData = response.data || response;
+      const userObj = resData?.user;
+      const token = resData?.access_token;
+      const refreshToken = resData?.refresh_token;
+
+      // Auto sign in user if token is returned
+      if (token && userObj) {
+        useCustomerStore.getState().setToken({
+          token: token,
+          refreshToken: refreshToken || null,
+          tokenExpired: null,
+          refreshTokenExpired: null,
+        });
+        useCustomerStore.getState().setUser(userObj);
+        localStorage.setItem("customer_access_token", token);
+
+        message.success(t("auth.registerSuccess") || "Đăng ký tài khoản thành công!");
+        setTimeout(() => {
+          navigate("/");
+        }, 800);
+      } else {
+        message.success(t("auth.registerSuccess") || "Đăng ký thành công! Vui lòng đăng nhập.");
+        setIsLogin(true);
+        navigate("/login");
+      }
     } catch (error: any) {
       console.error("Lỗi đăng ký:", error);
-      const errMsg = error?.response?.data?.msg || t("auth.registerFailed");
+      const errors = error?.response?.data?.errors;
+      let errMsg = "";
+      if (errors && typeof errors === "object") {
+        errMsg = Object.values(errors).flat().join(" ");
+      } else {
+        errMsg = error?.response?.data?.message || error?.response?.data?.msg || t("auth.registerFailed");
+      }
       message.error(errMsg);
     } finally {
       setLoading(false);
