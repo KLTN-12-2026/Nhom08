@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Form, Input, Button, message } from "antd";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import useCustomerStore from "../../stores/customerStore";
 import RepositoryManager from "../../data/repositoryManager";
 import useThemeStore from "../../stores/themeStore.ts";
@@ -9,12 +9,23 @@ import LanguageSwitcher from "../../components/LanguageSwitcher.tsx";
 
 export default function CustomerAuth() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [isForgot, setIsForgot] = useState(false);
   const [forgotEmailSent, setForgotEmailSent] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(location.pathname !== "/register");
   const { theme, toggleTheme } = useThemeStore();
   const { t, currentLanguage } = useLanguageStore();
+
+  useEffect(() => {
+    if (location.pathname === "/register") {
+      setIsLogin(false);
+      setIsForgot(false);
+    } else if (location.pathname === "/login") {
+      setIsLogin(true);
+      setIsForgot(false);
+    }
+  }, [location.pathname]);
 
   const onFinishLogin = async (values: any) => {
     setLoading(true);
