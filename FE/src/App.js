@@ -51,6 +51,7 @@ function App() {
         />
         <Route path="/login" element={<CustomerAuth />} />
         <Route path="/register" element={<CustomerAuth />} />
+        <Route path="/forgot-password" element={<CustomerAuth />} />
         <Route path="/admin/login" element={<Login />} />
         <Route
           path="/*"

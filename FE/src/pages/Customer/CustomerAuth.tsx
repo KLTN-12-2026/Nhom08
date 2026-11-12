@@ -13,7 +13,9 @@ export default function CustomerAuth() {
   const [loading, setLoading] = useState(false);
   const [isForgot, setIsForgot] = useState(false);
   const [forgotEmailSent, setForgotEmailSent] = useState(false);
-  const [isLogin, setIsLogin] = useState(location.pathname !== "/register");
+  const [isLogin, setIsLogin] = useState(
+    location.pathname !== "/register" && location.pathname !== "/forgot-password"
+  );
   const { theme, toggleTheme } = useThemeStore();
   const { t, currentLanguage } = useLanguageStore();
 
@@ -21,6 +23,9 @@ export default function CustomerAuth() {
     if (location.pathname === "/register") {
       setIsLogin(false);
       setIsForgot(false);
+    } else if (location.pathname === "/forgot-password") {
+      setIsForgot(true);
+      setIsLogin(false);
     } else if (location.pathname === "/login") {
       setIsLogin(true);
       setIsForgot(false);
@@ -279,7 +284,10 @@ export default function CustomerAuth() {
 
                       <button
                         type="button"
-                        onClick={() => setIsForgot(true)}
+                        onClick={() => {
+                          setIsForgot(true);
+                          navigate("/forgot-password");
+                        }}
                         className="text-amber-500 hover:text-amber-600 text-xs font-black tracking-wide uppercase transition-colors"
                         style={{ background: "none", border: "none", cursor: "pointer" }}
                       >
@@ -301,7 +309,10 @@ export default function CustomerAuth() {
 
                   <div className="text-center mt-4">
                     <button
-                      onClick={() => setIsLogin(false)}
+                      onClick={() => {
+                        setIsLogin(false);
+                        navigate("/register");
+                      }}
                       style={{ background: "none", border: "none", color: theme === "dark" ? "#9ca3af" : "#4b5563", fontSize: "0.8rem", fontWeight: "600", cursor: "pointer" }}
                       className="hover:text-amber-500 transition-colors"
                     >
@@ -414,7 +425,10 @@ export default function CustomerAuth() {
 
                   <div className="text-center mt-4">
                     <button
-                      onClick={() => setIsLogin(true)}
+                      onClick={() => {
+                        setIsLogin(true);
+                        navigate("/login");
+                      }}
                       style={{ background: "none", border: "none", color: theme === "dark" ? "#9ca3af" : "#4b5563", fontSize: "0.8rem", fontWeight: "600", cursor: "pointer" }}
                       className="hover:text-amber-500 transition-colors"
                     >
@@ -483,7 +497,11 @@ export default function CustomerAuth() {
                 <div className="text-center">
                   <button
                     type="button"
-                    onClick={() => setIsForgot(false)}
+                    onClick={() => {
+                      setIsForgot(false);
+                      setIsLogin(true);
+                      navigate("/login");
+                    }}
                     className={`${theme === "dark" ? "text-gray-500 hover:text-white" : "text-gray-500 hover:text-black"} text-xs font-bold flex items-center justify-center gap-1.5 mx-auto uppercase tracking-wider transition-colors`}
                     style={{ background: "none", border: "none", cursor: "pointer" }}
                   >
