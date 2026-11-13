@@ -124,6 +124,16 @@ export default function PublicPlaces() {
     handleVersionClick,
   } = usePublicPlacesStore();
 
+  // Debounced search query to prevent excessive API requests
+  const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   // Find activity group ID by name
   const findActivityGroupId = (name: string) => {
     if (name === "Tất cả") return null;
@@ -133,56 +143,51 @@ export default function PublicPlaces() {
     return group ? group.id : null;
   };
 
-  // Local search filter
-  const filteredPlaces = places.filter((place) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase().trim();
-    return (
-      place.name?.toLowerCase().includes(query) ||
-      place.address?.toLowerCase().includes(query) ||
-      place.description?.toLowerCase().includes(query)
-    );
-  });
+  // Helper to build filter params for API
+  const buildFilterParams = (
+    search: string = debouncedSearch,
+    cat: string = activeCategory,
+    price: string = filterPriceRange,
+    dist: number = filterDistance
+  ) => {
+    const params: any = {};
+    if (search) {
+      params.search = search;
+    }
+    if (cat !== "Tất cả") {
+      const catId = findActivityGroupId(cat);
+      if (catId) {
+        params.activity_group_ids = [catId];
+      }
+    }
+    if (price !== "all") {
+      if (price === "under200") {
+        params.price_max = 200000;
+      } else if (price === "200to500") {
+        params.price_min = 200000;
+        params.price_max = 500000;
+      } else if (price === "over500") {
+        params.price_min = 500000;
+      }
+    }
+    if (dist && dist < 100) {
+      params.distance_km = dist;
+      params.latitude = 16.0544;
+      params.longitude = 108.2022;
+    }
+    return params;
+  };
 
   useEffect(() => {
     initializeDomain();
     fetchActivityGroups();
   }, [initializeDomain, fetchActivityGroups]);
 
-  // Fetch places when filters change
+  // Fetch places when debounced search or filters change
   useEffect(() => {
-    const params: any = {};
-    
-    if (searchQuery) {
-      params.search = searchQuery;
-    }
-
-    if (activeCategory !== "Tất cả") {
-      const catId = findActivityGroupId(activeCategory);
-      if (catId) {
-        params.activity_group_ids = [catId];
-      }
-    }
-
-    if (filterPriceRange !== "all") {
-      if (filterPriceRange === "under200") {
-        params.price_max = 200000;
-      } else if (filterPriceRange === "200to500") {
-        params.price_min = 200000;
-        params.price_max = 500000;
-      } else if (filterPriceRange === "over500") {
-        params.price_min = 500000;
-      }
-    }
-
-    if (filterDistance && filterDistance < 100) {
-      params.distance_km = filterDistance;
-      params.latitude = 16.0544;
-      params.longitude = 108.2022;
-    }
-
+    const params = buildFilterParams();
     fetchPlaces(1, false, params);
-  }, [activeCategory, filterPriceRange, filterDistance, storeActivityGroups, searchQuery]);
+  }, [activeCategory, filterPriceRange, filterDistance, storeActivityGroups, debouncedSearch]);
 
   // Lazy load handlers for detailed modal
   const handleLoadActivityGroups = async (open: boolean) => {
@@ -326,14 +331,22 @@ export default function PublicPlaces() {
             placeholder={t("publicPlaces.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            allowClear
             prefix={<i className="fa-solid fa-magnifying-glass text-gray-400 mr-1" />}
             className="rounded-2xl py-3 border-none bg-white dark:bg-gray-900 shadow-[0_4px_12px_rgba(0,0,0,0.02)] w-full"
           />
           <button
             onClick={() => setIsFilterModalOpen(true)}
-            className="w-12 h-12 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-2xl flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.02)] transition-all duration-200 shrink-0"
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.02)] transition-all duration-200 shrink-0 relative ${
+              filterPriceRange !== "all" || (filterDistance && filterDistance < 100)
+                ? "bg-[#FFCB37] text-black"
+                : "bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-black dark:text-gray-300"
+            }`}
           >
-            <i className="fa-solid fa-sliders text-lg text-black dark:text-gray-300" />
+            <i className="fa-solid fa-sliders text-lg" />
+            {(filterPriceRange !== "all" || (filterDistance && filterDistance < 100)) && (
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
+            )}
           </button>
         </div>
 
@@ -368,6 +381,55 @@ export default function PublicPlaces() {
           </div>
         </div>
       </div>
+
+      {/* ACTIVE FILTER BADGES */}
+      {(searchQuery || activeCategory !== "Tất cả" || filterPriceRange !== "all" || (filterDistance && filterDistance < 100)) && (
+        <div className="flex flex-wrap items-center gap-2 pt-1 animate-fade-in">
+          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 mr-1">Bộ lọc đang áp dụng:</span>
+          {searchQuery && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-300 rounded-full text-xs font-semibold border border-amber-200 dark:border-amber-800">
+              <i className="fa-solid fa-magnifying-glass text-[10px]" />
+              "{searchQuery}"
+              <button onClick={() => setSearchQuery("")} className="hover:text-red-500 ml-0.5">
+                <i className="fa-solid fa-xmark text-[11px]" />
+              </button>
+            </span>
+          )}
+          {activeCategory !== "Tất cả" && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-900 dark:bg-blue-950/40 dark:text-blue-300 rounded-full text-xs font-semibold border border-blue-200 dark:border-blue-800">
+              Danh mục: {activeCategory}
+              <button onClick={() => handleCategoryClick("Tất cả")} className="hover:text-red-500 ml-0.5">
+                <i className="fa-solid fa-xmark text-[11px]" />
+              </button>
+            </span>
+          )}
+          {filterPriceRange !== "all" && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-900 dark:bg-green-950/40 dark:text-green-300 rounded-full text-xs font-semibold border border-green-200 dark:border-green-800">
+              Ví tiền: {filterPriceRange === "under200" ? "< 200k" : filterPriceRange === "200to500" ? "200k - 500k" : "> 500k"}
+              <button onClick={() => setFilterPriceRange("all")} className="hover:text-red-500 ml-0.5">
+                <i className="fa-solid fa-xmark text-[11px]" />
+              </button>
+            </span>
+          )}
+          {filterDistance && filterDistance < 100 && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-50 text-purple-900 dark:bg-purple-950/40 dark:text-purple-300 rounded-full text-xs font-semibold border border-purple-200 dark:border-purple-800">
+              Khoảng cách: &le; {filterDistance} km
+              <button onClick={() => setFilterDistance(100)} className="hover:text-red-500 ml-0.5">
+                <i className="fa-solid fa-xmark text-[11px]" />
+              </button>
+            </span>
+          )}
+          <button
+            onClick={() => {
+              setSearchQuery("");
+              handleResetFilters();
+            }}
+            className="text-xs text-red-500 hover:text-red-700 font-bold ml-2 underline"
+          >
+            Xóa tất cả
+          </button>
+        </div>
+      )}
 
       {/* 3. SẮP RA MẮT ANNOUNCEMENT BANNER */}
       {showBanner && (
@@ -405,9 +467,28 @@ export default function PublicPlaces() {
           </div>
         ) : error ? (
           <div className="text-center py-10 text-red-500 font-semibold">{error}</div>
+        ) : places.length === 0 ? (
+          <div className="bg-white dark:bg-gray-900 rounded-[28px] p-12 text-center shadow-sm border border-gray-100 dark:border-gray-800 space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-full bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center text-amber-500">
+              <i className="fa-solid fa-map-location-dot text-2xl" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-black text-gray-800 dark:text-gray-200">Không tìm thấy địa điểm phù hợp</h3>
+              <p className="text-xs text-gray-500">Hãy thử thay đổi từ khóa tìm kiếm hoặc bỏ bớt các bộ lọc đang chọn</p>
+            </div>
+            <button
+              onClick={() => {
+                setSearchQuery("");
+                handleResetFilters();
+              }}
+              className="px-5 py-2.5 rounded-full text-xs font-bold bg-[#FFCB37] text-black hover:opacity-90 transition-opacity"
+            >
+              Đặt lại tất cả bộ lọc
+            </button>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPlaces.map((place) => (
+            {places.map((place) => (
               <PlaceCard key={place.id} place={place} onOpenDetail={openPlaceDetail} />
             ))}
           </div>
@@ -421,28 +502,7 @@ export default function PublicPlaces() {
               pageSize={perPage}
               total={total}
               onChange={(page) => {
-                const params: any = {};
-                if (activeCategory !== "Tất cả") {
-                  const catId = findActivityGroupId(activeCategory);
-                  if (catId) {
-                    params.activity_group_ids = [catId];
-                  }
-                }
-                if (filterPriceRange !== "all") {
-                  if (filterPriceRange === "under200") {
-                    params.price_max = 200000;
-                  } else if (filterPriceRange === "200to500") {
-                    params.price_min = 200000;
-                    params.price_max = 500000;
-                  } else if (filterPriceRange === "over500") {
-                    params.price_min = 500000;
-                  }
-                }
-                if (filterDistance && filterDistance < 100) {
-                  params.distance_km = filterDistance;
-                  params.latitude = 16.0544;
-                  params.longitude = 108.2022;
-                }
+                const params = buildFilterParams(debouncedSearch, activeCategory, filterPriceRange, filterDistance);
                 fetchPlaces(page, false, params);
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
