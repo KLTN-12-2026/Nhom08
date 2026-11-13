@@ -7,12 +7,14 @@ import categoriesAPI from "../../data/remote/categories";
 import useDataMainStore from "../../stores/dataMainStore.js";
 import placesAPI from "../../data/remote/places";
 import useLanguageStore from "../../stores/languageStore.ts";
+import useCustomerStore from "../../stores/customerStore.js";
 
 const { TextArea } = Input;
 const { Option } = Select;
 
 interface Review {
   id: number;
+  userId?: number;
   user: string;
   avatar: string;
   rating: number;
@@ -24,6 +26,7 @@ export default function CustomerPlaces() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useLanguageStore();
+  const { user: currentUser } = useCustomerStore();
   const [form] = Form.useForm();
   const [createForm] = Form.useForm();
   
@@ -42,6 +45,8 @@ export default function CustomerPlaces() {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [selectedRatingFilter, setSelectedRatingFilter] = useState<number | "all">("all");
 
   // Load options for create form
   useEffect(() => {
@@ -70,6 +75,7 @@ export default function CustomerPlaces() {
       setReviews(
         rawReviews.map((r: any) => ({
           id: r.id,
+          userId: r.user?.id || r.user_id,
           user: r.user?.name || r.user_name || "Người dùng",
           avatar: r.user?.avatar || r.avatar || "",
           rating: r.rating,
@@ -131,6 +137,7 @@ export default function CustomerPlaces() {
   };
 
   const handleAddReview = async (values: any) => {
+    setIsSubmittingReview(true);
     try {
       const payload = {
         place_id: Number(id),
@@ -139,11 +146,13 @@ export default function CustomerPlaces() {
       };
       const res = await placesAPI.createReview(payload);
       if (res?.success || res?.data) {
+        const reviewData = res.data?.data || res.data || {};
         const newReview: Review = {
-          id: res.data?.id || Date.now(),
-          user: res.data?.user?.name || "Bạn",
-          avatar: res.data?.user?.avatar || "",
-          rating: values.rating,
+          id: reviewData.id || Date.now(),
+          userId: currentUser?.id,
+          user: currentUser?.name || reviewData.user?.name || "Bạn",
+          avatar: currentUser?.avatar || reviewData.user?.avatar || "",
+          rating: Number(values.rating),
           comment: values.comment,
           date: new Date().toISOString().split("T")[0],
         };
@@ -153,8 +162,28 @@ export default function CustomerPlaces() {
       } else {
         message.error(res?.message || "Gửi đánh giá thất bại.");
       }
-    } catch (e) {
-      message.error("Có lỗi xảy ra khi gửi đánh giá.");
+    } catch (e: any) {
+      if (e?.response?.status === 401) {
+        message.error("Vui lòng đăng nhập để bình luận đánh giá địa điểm!");
+      } else {
+        message.error(e?.response?.data?.message || "Có lỗi xảy ra khi gửi đánh giá.");
+      }
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: number) => {
+    try {
+      const res = await placesAPI.deleteReview(reviewId);
+      if (res?.success !== false) {
+        setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+        message.success("Đã xóa bình luận!");
+      } else {
+        message.error(res?.message || "Không thể xóa bình luận.");
+      }
+    } catch (e: any) {
+      message.error(e?.response?.data?.message || "Lỗi khi xóa bình luận.");
     }
   };
 
@@ -629,12 +658,36 @@ export default function CustomerPlaces() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Write a review Form */}
         <div className="md:col-span-1">
-          <Card className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[32px] p-6 shadow-sm">
-            <h3 className="text-lg font-black text-black dark:text-white mb-2">Đánh giá địa điểm</h3>
-            <p className="text-xs text-gray-400 mb-4">Chia sẻ trải nghiệm của bạn tại {place.name}</p>
+          <Card className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[32px] p-6 shadow-sm sticky top-6">
+            <h3 className="text-lg font-black text-black dark:text-white mb-1">Đánh giá & Bình luận</h3>
+            <p className="text-xs text-gray-400 mb-4">Chia sẻ trải nghiệm thực tế của bạn tại {place.name}</p>
+
+            {currentUser ? (
+              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl mb-4 border border-gray-100 dark:border-gray-800">
+                <Avatar src={currentUser.avatar} size={36} className="bg-amber-400 text-black font-bold">
+                  {currentUser.name ? currentUser.name[0]?.toUpperCase() : "U"}
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{currentUser.name}</p>
+                  <p className="text-[11px] text-gray-400 truncate">{currentUser.email || "Đang đăng nhập"}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-2xl mb-4 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
+                <span>Đăng nhập để gửi bình luận</span>
+                <Button size="small" onClick={() => navigate("/auth")} className="text-xs font-bold bg-[#FFCB37] border-none rounded-lg">
+                  Đăng nhập
+                </Button>
+              </div>
+            )}
 
             <Form form={form} layout="vertical" onFinish={handleAddReview} className="space-y-4">
-              <Form.Item name="rating" label={<span className="font-bold text-sm">Số sao đánh giá</span>} rules={[{ required: true, message: "Vui lòng chọn số sao!" }]} initialValue={5}>
+              <Form.Item 
+                name="rating" 
+                label={<span className="font-bold text-sm">Số sao đánh giá</span>} 
+                rules={[{ required: true, message: "Vui lòng chọn số sao!" }]} 
+                initialValue={5}
+              >
                 <Rate className="text-[#FFCB37]" style={{ color: "#FFCB37" }} />
               </Form.Item>
 
@@ -643,12 +696,19 @@ export default function CustomerPlaces() {
                 label={<span className="font-bold text-sm">Nội dung nhận xét</span>}
                 rules={[{ required: true, message: "Vui lòng nhập bình luận đánh giá!" }]}
               >
-                <Input.TextArea placeholder="Nhập cảm nhận của bạn về không gian, món ăn, dịch vụ..." rows={4} className="rounded-xl border-gray-200 dark:border-gray-800" />
+                <Input.TextArea 
+                  placeholder="Nhập cảm nhận của bạn về không gian, món ăn, dịch vụ, giá cả..." 
+                  rows={4} 
+                  maxLength={500}
+                  showCount
+                  className="rounded-xl border-gray-200 dark:border-gray-800" 
+                />
               </Form.Item>
 
               <Button
                 type="primary"
                 htmlType="submit"
+                loading={isSubmittingReview}
                 className="w-full bg-[#FFCB37] hover:bg-[#FFCB37]/90 text-black border-none font-bold py-3 h-auto rounded-xl shadow-sm"
               >
                 Gửi bình luận
@@ -660,44 +720,120 @@ export default function CustomerPlaces() {
         {/* Existing reviews list */}
         <div className="md:col-span-2">
           <Card className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[32px] p-8 shadow-sm">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black text-black dark:text-white">Ý kiến cộng đồng ({reviews.length})</h3>
-              <div className="flex items-center gap-1.5 text-sm font-bold text-amber-500">
-                <i className="fa-solid fa-star" />
-                <span>{Number(place.average_rating || place.rating || 5).toFixed(1)} / 5</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
+              <div>
+                <h3 className="text-xl font-black text-black dark:text-white">Ý kiến cộng đồng ({reviews.length})</h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-1 text-sm font-bold text-amber-500">
+                    <i className="fa-solid fa-star" />
+                    <span>{Number(place.average_rating || place.rating || 5).toFixed(1)} / 5</span>
+                  </div>
+                  <span className="text-gray-300">•</span>
+                  <span className="text-xs text-gray-400 font-medium">{reviews.length} lượt đánh giá</span>
+                </div>
+              </div>
+
+              {/* Rating Filter Tabs */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setSelectedRatingFilter("all")}
+                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                    selectedRatingFilter === "all"
+                      ? "bg-[#FFCB37] text-black shadow-sm"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-black dark:hover:text-white"
+                  }`}
+                >
+                  Tất cả ({reviews.length})
+                </button>
+                {[5, 4, 3, 2, 1].map((stars) => {
+                  const count = reviews.filter((r) => Math.round(Number(r.rating)) === stars).length;
+                  return (
+                    <button
+                      key={stars}
+                      type="button"
+                      onClick={() => setSelectedRatingFilter(stars)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${
+                        selectedRatingFilter === stars
+                          ? "bg-[#FFCB37] text-black shadow-sm"
+                          : "bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-black dark:hover:text-white"
+                      }`}
+                    >
+                      <span>{stars}★</span>
+                      <span className="opacity-70">({count})</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {reviews.length === 0 ? (
-              <div className="py-12 text-center text-gray-400">
-                <i className="fa-regular fa-comment-dots text-4xl mb-3 block" />
-                <p className="font-medium text-sm">Chưa có đánh giá nào cho địa điểm này. Hãy là người đầu tiên chia sẻ cảm nhận!</p>
-              </div>
-            ) : (
-              <div className="space-y-6 divide-y divide-gray-100 dark:divide-gray-800">
-                {reviews.map((rev) => (
-                  <div key={rev.id} className="pt-5 first:pt-0 flex gap-4">
-                    <Avatar 
-                      src={rev.avatar} 
-                      size={44} 
-                      className="shrink-0 bg-amber-200 text-amber-800 font-bold"
-                    >
-                      {rev.user ? rev.user[0]?.toUpperCase() : "U"}
-                    </Avatar>
-                    <div className="space-y-1.5 flex-1 min-w-0">
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold text-black dark:text-white text-sm truncate">{rev.user}</span>
-                        <span className="text-xs text-gray-400 font-medium shrink-0">{rev.date}</span>
-                      </div>
-                      <Rate disabled defaultValue={rev.rating} className="text-xs text-[#FFCB37]" style={{ color: "#FFCB37" }} />
-                      <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed pt-1">
-                        {rev.comment}
-                      </p>
-                    </div>
+            {/* List rendered with filtering */}
+            {(() => {
+              const filteredReviews = selectedRatingFilter === "all" 
+                ? reviews 
+                : reviews.filter((r) => Math.round(Number(r.rating)) === selectedRatingFilter);
+
+              if (filteredReviews.length === 0) {
+                return (
+                  <div className="py-14 text-center text-gray-400">
+                    <i className="fa-regular fa-comment-dots text-5xl mb-3 block opacity-40" />
+                    <p className="font-semibold text-sm">
+                      {selectedRatingFilter === "all"
+                        ? "Chưa có đánh giá nào cho địa điểm này. Hãy là người đầu tiên chia sẻ cảm nhận!"
+                        : `Không có đánh giá nào ${selectedRatingFilter} sao.`}
+                    </p>
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              }
+
+              return (
+                <div className="space-y-6 divide-y divide-gray-100 dark:divide-gray-800">
+                  {filteredReviews.map((rev) => {
+                    const isMyReview = currentUser && rev.userId && Number(rev.userId) === Number(currentUser.id);
+                    return (
+                      <div key={rev.id} className="pt-5 first:pt-0 flex gap-4 group">
+                        <Avatar 
+                          src={rev.avatar} 
+                          size={44} 
+                          className="shrink-0 bg-amber-200 text-amber-800 font-bold"
+                        >
+                          {rev.user ? rev.user[0]?.toUpperCase() : "U"}
+                        </Avatar>
+                        <div className="space-y-1.5 flex-1 min-w-0">
+                          <div className="flex justify-between items-center gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-bold text-black dark:text-white text-sm truncate">{rev.user}</span>
+                              {isMyReview && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 shrink-0">
+                                  Bạn
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-400 font-medium shrink-0">{rev.date}</span>
+                              {isMyReview && (
+                                <Tooltip title="Xóa bình luận của bạn">
+                                  <button
+                                    onClick={() => handleDeleteReview(rev.id)}
+                                    className="text-gray-300 hover:text-red-500 text-xs transition-colors p-1"
+                                  >
+                                    <i className="fa-regular fa-trash-can" />
+                                  </button>
+                                </Tooltip>
+                              )}
+                            </div>
+                          </div>
+                          <Rate disabled defaultValue={rev.rating} className="text-xs text-[#FFCB37]" style={{ color: "#FFCB37" }} />
+                          <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed pt-1 whitespace-pre-line">
+                            {rev.comment}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </Card>
         </div>
       </div>

@@ -91,6 +91,18 @@ const placesAPI = {
         return response.data;
     },
 
+    // GET /api/reviews/place/{placeId} - Get reviews of a place
+    getReviewsByPlace: async (placeId, params = {}) => {
+        const response = await apiClient.get(`/reviews/place/${placeId}`, { params });
+        return response.data;
+    },
+
+    // DELETE /api/reviews/{review} - Delete a review
+    deleteReview: async (reviewId) => {
+        const response = await apiClient.delete(`/reviews/${reviewId}`);
+        return response.data;
+    },
+
     // POST /api/favorite-places/toggle - Toggle favorite place
     toggleFavorite: async (placeId) => {
         const response = await apiClient.post(`/favorite-places/toggle`, { place_id: placeId });
