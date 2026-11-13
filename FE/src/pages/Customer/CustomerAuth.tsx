@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Form, Input, Button, message } from "antd";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import useCustomerStore from "../../stores/customerStore";
 import RepositoryManager from "../../data/repositoryManager";
 import useThemeStore from "../../stores/themeStore.ts";
@@ -9,28 +9,12 @@ import LanguageSwitcher from "../../components/LanguageSwitcher.tsx";
 
 export default function CustomerAuth() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [isForgot, setIsForgot] = useState(false);
   const [forgotEmailSent, setForgotEmailSent] = useState(false);
-  const [isLogin, setIsLogin] = useState(
-    location.pathname !== "/register" && location.pathname !== "/forgot-password"
-  );
+  const [isLogin, setIsLogin] = useState(true);
   const { theme, toggleTheme } = useThemeStore();
   const { t, currentLanguage } = useLanguageStore();
-
-  useEffect(() => {
-    if (location.pathname === "/register") {
-      setIsLogin(false);
-      setIsForgot(false);
-    } else if (location.pathname === "/forgot-password") {
-      setIsForgot(true);
-      setIsLogin(false);
-    } else if (location.pathname === "/login") {
-      setIsLogin(true);
-      setIsForgot(false);
-    }
-  }, [location.pathname]);
 
   const onFinishLogin = async (values: any) => {
     setLoading(true);
@@ -75,47 +59,17 @@ export default function CustomerAuth() {
   const onFinishRegister = async (values: any) => {
     setLoading(true);
     try {
-      const response = await RepositoryManager.auth.register({
-        name: values.name.trim(),
-        email: values.email.trim(),
+      await RepositoryManager.auth.register({
+        name: values.name,
+        email: values.email,
         password: values.password,
         password_confirmation: values.confirmPassword,
       });
-
-      const resData = response.data || response;
-      const userObj = resData?.user;
-      const token = resData?.access_token;
-      const refreshToken = resData?.refresh_token;
-
-      // Auto sign in user if token is returned
-      if (token && userObj) {
-        useCustomerStore.getState().setToken({
-          token: token,
-          refreshToken: refreshToken || null,
-          tokenExpired: null,
-          refreshTokenExpired: null,
-        });
-        useCustomerStore.getState().setUser(userObj);
-        localStorage.setItem("customer_access_token", token);
-
-        message.success(t("auth.registerSuccess") || "Đăng ký tài khoản thành công!");
-        setTimeout(() => {
-          navigate("/");
-        }, 800);
-      } else {
-        message.success(t("auth.registerSuccess") || "Đăng ký thành công! Vui lòng đăng nhập.");
-        setIsLogin(true);
-        navigate("/login");
-      }
+      message.success(t("auth.registerSuccess"));
+      setIsLogin(true);
     } catch (error: any) {
       console.error("Lỗi đăng ký:", error);
-      const errors = error?.response?.data?.errors;
-      let errMsg = "";
-      if (errors && typeof errors === "object") {
-        errMsg = Object.values(errors).flat().join(" ");
-      } else {
-        errMsg = error?.response?.data?.message || error?.response?.data?.msg || t("auth.registerFailed");
-      }
+      const errMsg = error?.response?.data?.msg || t("auth.registerFailed");
       message.error(errMsg);
     } finally {
       setLoading(false);
@@ -284,10 +238,7 @@ export default function CustomerAuth() {
 
                       <button
                         type="button"
-                        onClick={() => {
-                          setIsForgot(true);
-                          navigate("/forgot-password");
-                        }}
+                        onClick={() => setIsForgot(true)}
                         className="text-amber-500 hover:text-amber-600 text-xs font-black tracking-wide uppercase transition-colors"
                         style={{ background: "none", border: "none", cursor: "pointer" }}
                       >
@@ -309,10 +260,7 @@ export default function CustomerAuth() {
 
                   <div className="text-center mt-4">
                     <button
-                      onClick={() => {
-                        setIsLogin(false);
-                        navigate("/register");
-                      }}
+                      onClick={() => setIsLogin(false)}
                       style={{ background: "none", border: "none", color: theme === "dark" ? "#9ca3af" : "#4b5563", fontSize: "0.8rem", fontWeight: "600", cursor: "pointer" }}
                       className="hover:text-amber-500 transition-colors"
                     >
@@ -425,10 +373,7 @@ export default function CustomerAuth() {
 
                   <div className="text-center mt-4">
                     <button
-                      onClick={() => {
-                        setIsLogin(true);
-                        navigate("/login");
-                      }}
+                      onClick={() => setIsLogin(true)}
                       style={{ background: "none", border: "none", color: theme === "dark" ? "#9ca3af" : "#4b5563", fontSize: "0.8rem", fontWeight: "600", cursor: "pointer" }}
                       className="hover:text-amber-500 transition-colors"
                     >
@@ -497,11 +442,7 @@ export default function CustomerAuth() {
                 <div className="text-center">
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsForgot(false);
-                      setIsLogin(true);
-                      navigate("/login");
-                    }}
+                    onClick={() => setIsForgot(false)}
                     className={`${theme === "dark" ? "text-gray-500 hover:text-white" : "text-gray-500 hover:text-black"} text-xs font-bold flex items-center justify-center gap-1.5 mx-auto uppercase tracking-wider transition-colors`}
                     style={{ background: "none", border: "none", cursor: "pointer" }}
                   >
