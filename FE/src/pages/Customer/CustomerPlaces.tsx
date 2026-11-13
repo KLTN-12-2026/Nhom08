@@ -79,21 +79,26 @@ export default function CustomerPlaces() {
     }
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const loadOptions = async () => {
     try {
       const tagRes = await tagsAPI.getTags();
-      if (tagRes.success && tagRes.data) {
-        setTagOptions(tagRes.data.data.map((t: any) => ({ id: t.id, name: t.name })));
+      const tagsList = tagRes?.data?.data || tagRes?.data || [];
+      if (Array.isArray(tagsList)) {
+        setTagOptions(tagsList.map((t: any) => ({ id: t.id, name: t.name || t.display_name })));
       }
 
       const catRes = await categoriesAPI.getCategories();
-      if (catRes.success && catRes.data) {
-        setCategoryOptions(catRes.data.data.map((c: any) => ({ id: c.id, name: c.display_name })));
+      const catList = catRes?.data?.data || catRes?.data || [];
+      if (Array.isArray(catList)) {
+        setCategoryOptions(catList.map((c: any) => ({ id: c.id, name: c.display_name || c.name })));
       }
 
       const groupRes = await activityGroups.getGroups();
-      if (groupRes.success && groupRes.data && Array.isArray(groupRes.data.data)) {
-        setActivityGroupOptions(groupRes.data.data.map((g: any) => ({ id: g.id, name: g.name })));
+      const groupList = groupRes?.data?.data || groupRes?.data || [];
+      if (Array.isArray(groupList)) {
+        setActivityGroupOptions(groupList.map((g: any) => ({ id: g.id, name: g.name })));
       }
     } catch (e) {
       console.error("Failed to load options", e);
@@ -129,6 +134,7 @@ export default function CustomerPlaces() {
   };
 
   const handleCreatePlace = async (values: any) => {
+    setIsSubmitting(true);
     try {
       const formData = new FormData();
 
@@ -163,31 +169,27 @@ export default function CustomerPlaces() {
       // Call Laravel BE API (multipart/form-data)
       const result = await placesAPI.createPublicPlace(formData);
       
-      if (result.success) {
-        const placeId = result.data?.id || result.data?.data?.id || result.place?.id || Date.now();
-        // Form post representation for local store update
-        const newPost = {
-          id: placeId,
-          title: result.data?.name || result.data?.data?.name || values.name || "Địa điểm mới",
-          category: values.category_ids && values.category_ids.length > 0 
-            ? (categoryOptions.find(c => c.id === values.category_ids[0])?.name || "Địa điểm")
-            : "Địa điểm",
-          status: "pending",
-          date: new Date().toISOString().split("T")[0],
-          image: (result.data?.media && result.data.media.length > 0)
-            ? result.data.media[0].url
-            : "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=500&q=80",
-          description: values.description || "Chưa có mô tả chi tiết."
-        };
-        addPost(newPost);
-        message.success("Đăng địa điểm mới thành công! Hệ thống đang kiểm duyệt.");
-        navigate("/my-posts");
+      if (result && (result.success !== false)) {
+        message.success("Đăng địa điểm mới thành công! Địa điểm của bạn đã được gửi lên hệ thống.");
+        createForm.resetFields();
+        setTimeout(() => {
+          navigate("/location");
+        }, 800);
       } else {
-        message.error(result.message || "Đăng địa điểm thất bại");
+        message.error(result?.message || "Đăng địa điểm thất bại");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Lỗi khi thêm địa điểm:", error);
-      message.error("Có lỗi xảy ra khi kết nối tới máy chủ.");
+      const errors = error?.response?.data?.errors;
+      let errMsg = "";
+      if (errors && typeof errors === "object") {
+        errMsg = Object.values(errors).flat().join(" ");
+      } else {
+        errMsg = error?.response?.data?.message || "Có lỗi xảy ra khi kết nối tới máy chủ.";
+      }
+      message.error(errMsg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -347,8 +349,8 @@ export default function CustomerPlaces() {
               >
                 Random Fill
               </Button>
-              <Button onClick={() => navigate("/my-posts")}>Cancel</Button>
-              <Button type="primary" htmlType="submit">
+              <Button onClick={() => navigate("/location")}>Cancel</Button>
+              <Button type="primary" htmlType="submit" loading={isSubmitting}>
                 Save
               </Button>
             </div>
