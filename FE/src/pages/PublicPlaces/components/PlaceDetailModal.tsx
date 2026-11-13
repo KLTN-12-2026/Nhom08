@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Modal, Skeleton, Image, Rate, Input, Button, message } from "antd";
 import { Place } from "../PublicPlacesStore";
 import StatusBadge from "./StatusBadge.tsx";
@@ -92,6 +93,7 @@ const PlaceDetailModal: React.FC<PlaceDetailModalProps> = ({
     selectedPlace,
     placeDetail,
 }) => {
+    const navigate = useNavigate();
     const { t } = useLanguageStore();
 
     const isCinema = 
@@ -184,18 +186,33 @@ const PlaceDetailModal: React.FC<PlaceDetailModalProps> = ({
                             {selectedPlace && <StatusBadge status={selectedPlace.status} />}
                         </div>
                     </div>
-                    <button
-                        onClick={handleToggleFavorite}
-                        disabled={isTogglingFavorite}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
-                            isFavorited
-                                ? "bg-red-50 border-red-200 text-red-500 dark:bg-red-950/20 dark:border-red-900/50 dark:text-red-400"
-                                : "bg-white hover:bg-gray-50 border-gray-200 text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 dark:text-gray-400"
-                        }`}
-                    >
-                        <i className={`fa-solid fa-heart ${isFavorited ? "text-red-500 animate-pulse" : "text-gray-300"}`} />
-                        <span>{t("publicPlaces.savePlace")}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {selectedPlace && (
+                            <button
+                                onClick={() => {
+                                    onCancel();
+                                    navigate(`/places/${selectedPlace.id}`);
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold transition-all shadow-sm"
+                                title="Xem trang chi tiết đầy đủ"
+                            >
+                                <i className="fa-solid fa-arrow-up-right-from-square text-xs" />
+                                <span>Chi tiết</span>
+                            </button>
+                        )}
+                        <button
+                            onClick={handleToggleFavorite}
+                            disabled={isTogglingFavorite}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                                isFavorited
+                                    ? "bg-red-50 border-red-200 text-red-500 dark:bg-red-950/20 dark:border-red-900/50 dark:text-red-400"
+                                    : "bg-white hover:bg-gray-50 border-gray-200 text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 dark:text-gray-400"
+                            }`}
+                        >
+                            <i className={`fa-solid fa-heart ${isFavorited ? "text-red-500 animate-pulse" : "text-gray-300"}`} />
+                            <span>{t("publicPlaces.savePlace")}</span>
+                        </button>
+                    </div>
                 </div>
             }
         >

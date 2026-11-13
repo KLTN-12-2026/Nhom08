@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Button, Form, Input, Rate, Avatar, message, Upload, Select, InputNumber } from "antd";
+import { Card, Button, Form, Input, Rate, Avatar, message, Upload, Select, InputNumber, Tag, Image, Tooltip } from "antd";
 import { activityGroups } from "../../data/remote/activityGroups";
 import tagsAPI from "../../data/remote/tags";
 import categoriesAPI from "../../data/remote/categories";
@@ -39,6 +39,9 @@ export default function CustomerPlaces() {
   const [place, setPlace] = useState<any>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingPlace, setLoadingPlace] = useState(false);
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
 
   // Load options for create form
   useEffect(() => {
@@ -60,6 +63,8 @@ export default function CustomerPlaces() {
       const res = await placesAPI.getPlaceById(id);
       const data = res?.data || res;
       setPlace(data);
+      setIsFavorited(Boolean(data?.is_favorited));
+      setActiveImageIdx(0);
       // Map reviews từ API response
       const rawReviews = data?.reviews || data?.data?.reviews || [];
       setReviews(
@@ -76,6 +81,26 @@ export default function CustomerPlaces() {
       message.error("Không thể tải thông tin địa điểm.");
     } finally {
       setLoadingPlace(false);
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!id) return;
+    setIsTogglingFavorite(true);
+    try {
+      const res = await placesAPI.toggleFavorite(Number(id));
+      if (res?.success || res?.data !== undefined) {
+        const nextState = res?.data?.is_favorited !== undefined ? res.data.is_favorited : !isFavorited;
+        setIsFavorited(nextState);
+        message.success(nextState ? "Đã lưu địa điểm vào danh sách yêu thích!" : "Đã bỏ lưu địa điểm.");
+      } else {
+        setIsFavorited(!isFavorited);
+        message.success(!isFavorited ? "Đã lưu địa điểm!" : "Đã bỏ lưu địa điểm.");
+      }
+    } catch (e) {
+      message.error("Vui lòng đăng nhập để lưu địa điểm yêu thích.");
+    } finally {
+      setIsTogglingFavorite(false);
     }
   };
 
@@ -364,10 +389,10 @@ export default function CustomerPlaces() {
   // Else, render the Place details and reviews page (Detail Mode)
   if (loadingPlace) {
     return (
-      <div className="max-w-4xl mx-auto w-full py-16 flex justify-center items-center">
-        <div className="text-center space-y-3">
-          <i className="fa-solid fa-spinner fa-spin text-3xl text-[#FFCB37]" />
-          <p className="text-gray-500 font-semibold">Đang tải thông tin địa điểm...</p>
+      <div className="max-w-5xl mx-auto w-full py-20 flex justify-center items-center">
+        <div className="text-center space-y-4">
+          <i className="fa-solid fa-spinner fa-spin text-4xl text-[#FFCB37]" />
+          <p className="text-gray-500 font-semibold text-base">Đang tải thông tin địa điểm...</p>
         </div>
       </div>
     );
@@ -375,18 +400,39 @@ export default function CustomerPlaces() {
 
   if (!place) {
     return (
-      <div className="max-w-4xl mx-auto w-full py-16 text-center">
-        <p className="text-gray-400 font-semibold">Không tìm thấy địa điểm này.</p>
+      <div className="max-w-5xl mx-auto w-full py-20 text-center space-y-4">
+        <i className="fa-regular fa-circle-question text-5xl text-gray-300"></i>
+        <p className="text-gray-500 font-semibold text-lg">Không tìm thấy địa điểm này.</p>
+        <Button onClick={() => navigate("/location")} type="primary" className="bg-[#FFCB37] text-black font-bold border-none rounded-xl">
+          Quay lại danh sách địa điểm
+        </Button>
       </div>
     );
   }
 
-  // Lấy ảnh đầu tiên từ media array, fallback placeholder
-  const coverImage =
-    place.media?.[0]?.original_url ||
-    place.media?.[0]?.url ||
-    place.images?.[0]?.url ||
-    "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=800&q=80";
+  // Danh sách hình ảnh
+  const mediaList: string[] = [];
+  if (Array.isArray(place.media) && place.media.length > 0) {
+    place.media.forEach((m: any) => {
+      const url = m?.original_url || m?.url;
+      if (url) mediaList.push(url);
+    });
+  }
+  if (Array.isArray(place.images) && place.images.length > 0) {
+    place.images.forEach((img: any) => {
+      const url = typeof img === "string" ? img : (img?.url || img?.original_url);
+      if (url && !mediaList.includes(url)) mediaList.push(url);
+    });
+  }
+  if (place.image && !mediaList.includes(place.image)) {
+    mediaList.push(place.image);
+  }
+  if (mediaList.length === 0) {
+    mediaList.push("https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=1200&q=80");
+  }
+
+  const currentCover = mediaList[activeImageIdx] || mediaList[0];
+
   const categoryLabel =
     place.categories?.[0]?.display_name ||
     place.categories?.[0]?.name ||
@@ -394,58 +440,216 @@ export default function CustomerPlaces() {
     "Địa điểm";
 
   return (
-    <div className="max-w-4xl mx-auto w-full py-4 space-y-6">
-      {/* Cover Image & Basic Info Card */}
-      <Card className="bg-white dark:bg-gray-900 border-none rounded-[32px] overflow-hidden shadow-[0_15px_30px_rgba(0,0,0,0.04)]" bodyStyle={{ padding: 0 }}>
-        <div className="h-64 sm:h-80 w-full relative">
-          <img src={coverImage} alt={place.name} className="w-full h-full object-cover" />
-          <div className="absolute bottom-4 left-6 bg-white/95 backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-1.5 shadow-md">
-            <span className="text-black font-black text-sm">★ {Number(place.average_rating || 0).toFixed(1)} / 5</span>
-          </div>
+    <div className="max-w-5xl mx-auto w-full py-6 px-4 sm:px-6 space-y-6">
+      {/* Top Navigation Bar: Back & Favorite */}
+      <div className="flex items-center justify-between gap-4">
+        <Button 
+          onClick={() => navigate("/location")}
+          icon={<i className="fa-solid fa-arrow-left text-sm mr-1"></i>}
+          className="rounded-2xl border-gray-200 dark:border-gray-800 font-semibold hover:border-[#FFCB37]"
+        >
+          Quay lại danh sách
+        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleToggleFavorite}
+            loading={isTogglingFavorite}
+            className={`rounded-2xl font-bold flex items-center gap-2 border transition-all ${
+              isFavorited
+                ? "bg-red-50 border-red-200 text-red-500 hover:bg-red-100 dark:bg-red-950/20 dark:border-red-900"
+                : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+            }`}
+          >
+            <i className={`fa-heart ${isFavorited ? "fa-solid text-red-500" : "fa-regular text-gray-400"}`} />
+            <span>{isFavorited ? "Đã lưu yêu thích" : "Lưu địa điểm"}</span>
+          </Button>
         </div>
+      </div>
 
-        <div className="p-8 space-y-4">
-          <div className="flex justify-between items-start gap-4">
-            <h2 className="text-3xl font-black text-black dark:text-white leading-tight">{place.name}</h2>
-            <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-[#FFCB37]/15 text-[#E6B000]">
+      {/* Main Place Banner & Gallery */}
+      <Card className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[32px] overflow-hidden shadow-sm" bodyStyle={{ padding: 0 }}>
+        {/* Main Cover Image Preview */}
+        <div className="h-72 sm:h-96 w-full relative group overflow-hidden bg-gray-100 dark:bg-gray-800">
+          <img 
+            src={currentCover} 
+            alt={place.name} 
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+
+          {/* Rating Badge */}
+          <div className="absolute top-4 left-6 bg-white/95 dark:bg-gray-900/90 backdrop-blur-md rounded-full px-4 py-1.5 flex items-center gap-1.5 shadow-md">
+            <span className="text-[#FFCB37] font-black text-sm">★</span>
+            <span className="text-black dark:text-white font-black text-sm">{Number(place.average_rating || place.rating || 5).toFixed(1)} / 5</span>
+            <span className="text-xs text-gray-400">({reviews.length} đánh giá)</span>
+          </div>
+
+          {/* Category Tag */}
+          <div className="absolute top-4 right-6">
+            <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-[#FFCB37] text-black shadow-md">
               {categoryLabel}
             </span>
           </div>
 
-          <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed flex items-start gap-2">
-            <i className="fa-solid fa-location-dot text-red-500 text-base mt-0.5 shrink-0" />
-            <span className="font-semibold">{place.address}</span>
-          </p>
+          {/* Slider Controls (if multiple media) */}
+          {mediaList.length > 1 && (
+            <>
+              <button
+                onClick={() => setActiveImageIdx((prev) => (prev - 1 + mediaList.length) % mediaList.length)}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center transition-all backdrop-blur-sm shadow-md"
+              >
+                <i className="fa-solid fa-chevron-left text-sm" />
+              </button>
+              <button
+                onClick={() => setActiveImageIdx((prev) => (prev + 1) % mediaList.length)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center transition-all backdrop-blur-sm shadow-md"
+              >
+                <i className="fa-solid fa-chevron-right text-sm" />
+              </button>
+              <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5">
+                {mediaList.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveImageIdx(i)}
+                    className={`h-2 rounded-full transition-all ${i === activeImageIdx ? "bg-white w-6" : "bg-white/50 w-2"}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
 
-          <p className="text-gray-700 dark:text-gray-300 leading-relaxed pt-2 border-t border-gray-50 dark:border-gray-800">
-            {place.description}
-          </p>
+        {/* Thumbnail Strip */}
+        {mediaList.length > 1 && (
+          <div className="p-4 bg-gray-50/70 dark:bg-gray-850/50 border-b border-gray-100 dark:border-gray-800 flex gap-3 overflow-x-auto">
+            {mediaList.map((thumbUrl, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveImageIdx(idx)}
+                className={`relative w-20 h-14 rounded-xl overflow-hidden shrink-0 border-2 transition-all ${
+                  idx === activeImageIdx ? "border-[#FFCB37] scale-105 shadow-sm" : "border-transparent opacity-60 hover:opacity-100"
+                }`}
+              >
+                <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Place Details Content */}
+        <div className="p-8 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-black text-black dark:text-white leading-tight">
+                {place.name}
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 text-sm flex items-start gap-2 mt-2">
+                <i className="fa-solid fa-location-dot text-red-500 text-base mt-0.5 shrink-0" />
+                <span className="font-semibold">{place.address}</span>
+              </p>
+            </div>
+
+            {/* Quick Pricing Badge */}
+            {place.average_price && (
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-2xl p-4 shrink-0">
+                <span className="text-xs text-amber-600 dark:text-amber-400 font-bold block">Giá trung bình</span>
+                <span className="text-xl font-black text-amber-700 dark:text-amber-300">
+                  {Number(place.average_price).toLocaleString("vi-VN")} đ
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Description */}
+          <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+            <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-2">Giới thiệu địa điểm</h3>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-sm">
+              {place.description || "Chưa có mô tả chi tiết cho địa điểm này."}
+            </p>
+          </div>
+
+          {/* Meta Attributes: Contact, Categories, Activity Groups, Tags */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+            {/* Contact & Map link */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200">Thông tin liên hệ</h4>
+              <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                {place.contact_phone && (
+                  <p className="flex items-center gap-2">
+                    <i className="fa-solid fa-phone text-[#FFCB37] w-4" />
+                    <span>{place.contact_phone}</span>
+                  </p>
+                )}
+                {place.contact_email && (
+                  <p className="flex items-center gap-2">
+                    <i className="fa-solid fa-envelope text-[#FFCB37] w-4" />
+                    <span>{place.contact_email}</span>
+                  </p>
+                )}
+                {place.latitude && place.longitude && (
+                  <a
+                    href={`https://www.google.com/maps?q=${place.latitude},${place.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-xs"
+                  >
+                    <i className="fa-solid fa-map-location-dot" />
+                    <span>Xem bản đồ Google Maps</span>
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Tags & Activity Groups */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200">Phân loại & Hoạt động</h4>
+              <div className="flex flex-wrap gap-2">
+                {Array.isArray(place.activity_groups) && place.activity_groups.map((g: any) => (
+                  <Tag key={g.id} color="purple" className="rounded-lg px-2.5 py-1 text-xs font-semibold">
+                    {g.name}
+                  </Tag>
+                ))}
+                {Array.isArray(place.categories) && place.categories.map((c: any) => (
+                  <Tag key={c.id} color="gold" className="rounded-lg px-2.5 py-1 text-xs font-semibold">
+                    {c.display_name || c.name}
+                  </Tag>
+                ))}
+                {Array.isArray(place.tags) && place.tags.map((tag: any, i: number) => (
+                  <Tag key={i} className="rounded-lg px-2.5 py-1 text-xs text-gray-600 bg-gray-100 border-none font-semibold">
+                    #{typeof tag === "string" ? tag : tag?.name}
+                  </Tag>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </Card>
 
-      {/* Reviews Section */}
+      {/* Reviews & Feedback Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Write a review Form */}
         <div className="md:col-span-1">
-          <Card className="bg-white dark:bg-gray-900 border-none rounded-[32px] p-6 shadow-[0_15px_30px_rgba(0,0,0,0.04)]">
-            <h3 className="text-lg font-black text-black dark:text-white mb-4">Đánh giá địa điểm</h3>
+          <Card className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[32px] p-6 shadow-sm">
+            <h3 className="text-lg font-black text-black dark:text-white mb-2">Đánh giá địa điểm</h3>
+            <p className="text-xs text-gray-400 mb-4">Chia sẻ trải nghiệm của bạn tại {place.name}</p>
+
             <Form form={form} layout="vertical" onFinish={handleAddReview} className="space-y-4">
-              <Form.Item name="rating" label={<span className="font-bold text-sm">Số sao</span>} rules={[{ required: true }]}>
+              <Form.Item name="rating" label={<span className="font-bold text-sm">Số sao đánh giá</span>} rules={[{ required: true, message: "Vui lòng chọn số sao!" }]} initialValue={5}>
                 <Rate className="text-[#FFCB37]" style={{ color: "#FFCB37" }} />
               </Form.Item>
 
               <Form.Item
                 name="comment"
-                label={<span className="font-bold text-sm">Bình luận</span>}
-                rules={[{ required: true, message: "Vui lòng nhập bình luận!" }]}
+                label={<span className="font-bold text-sm">Nội dung nhận xét</span>}
+                rules={[{ required: true, message: "Vui lòng nhập bình luận đánh giá!" }]}
               >
-                <Input.TextArea placeholder="Cảm nhận của bạn về địa điểm này..." rows={3} className="rounded-xl border-gray-200 dark:border-gray-800" />
+                <Input.TextArea placeholder="Nhập cảm nhận của bạn về không gian, món ăn, dịch vụ..." rows={4} className="rounded-xl border-gray-200 dark:border-gray-800" />
               </Form.Item>
 
               <Button
                 type="primary"
                 htmlType="submit"
-                className="w-full bg-[#FFCB37] hover:bg-[#FFCB37]/90 text-black border-none font-bold py-2.5 h-auto rounded-xl"
+                className="w-full bg-[#FFCB37] hover:bg-[#FFCB37]/90 text-black border-none font-bold py-3 h-auto rounded-xl shadow-sm"
               >
                 Gửi bình luận
               </Button>
@@ -455,25 +659,45 @@ export default function CustomerPlaces() {
 
         {/* Existing reviews list */}
         <div className="md:col-span-2">
-          <Card className="bg-white dark:bg-gray-900 border-none rounded-[32px] p-8 shadow-[0_15px_30px_rgba(0,0,0,0.04)]">
-            <h3 className="text-xl font-black text-black dark:text-white mb-6">Ý kiến cộng đồng ({reviews.length})</h3>
-            <div className="space-y-6 divide-y divide-gray-100 dark:divide-gray-800">
-              {reviews.map((rev) => (
-                <div key={rev.id} className="pt-4 first:pt-0 flex gap-4">
-                  <Avatar src={rev.avatar} size={40} className="shrink-0" />
-                  <div className="space-y-1.5 flex-1">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-black dark:text-white text-sm">{rev.user}</span>
-                      <span className="text-xs text-gray-400 font-semibold">{rev.date}</span>
-                    </div>
-                    <Rate disabled defaultValue={rev.rating} className="text-xs text-[#FFCB37]" style={{ color: "#FFCB37" }} />
-                    <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
-                      {rev.comment}
-                    </p>
-                  </div>
-                </div>
-              ))}
+          <Card className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[32px] p-8 shadow-sm">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-black text-black dark:text-white">Ý kiến cộng đồng ({reviews.length})</h3>
+              <div className="flex items-center gap-1.5 text-sm font-bold text-amber-500">
+                <i className="fa-solid fa-star" />
+                <span>{Number(place.average_rating || place.rating || 5).toFixed(1)} / 5</span>
+              </div>
             </div>
+
+            {reviews.length === 0 ? (
+              <div className="py-12 text-center text-gray-400">
+                <i className="fa-regular fa-comment-dots text-4xl mb-3 block" />
+                <p className="font-medium text-sm">Chưa có đánh giá nào cho địa điểm này. Hãy là người đầu tiên chia sẻ cảm nhận!</p>
+              </div>
+            ) : (
+              <div className="space-y-6 divide-y divide-gray-100 dark:divide-gray-800">
+                {reviews.map((rev) => (
+                  <div key={rev.id} className="pt-5 first:pt-0 flex gap-4">
+                    <Avatar 
+                      src={rev.avatar} 
+                      size={44} 
+                      className="shrink-0 bg-amber-200 text-amber-800 font-bold"
+                    >
+                      {rev.user ? rev.user[0]?.toUpperCase() : "U"}
+                    </Avatar>
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-black dark:text-white text-sm truncate">{rev.user}</span>
+                        <span className="text-xs text-gray-400 font-medium shrink-0">{rev.date}</span>
+                      </div>
+                      <Rate disabled defaultValue={rev.rating} className="text-xs text-[#FFCB37]" style={{ color: "#FFCB37" }} />
+                      <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed pt-1">
+                        {rev.comment}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
         </div>
       </div>
