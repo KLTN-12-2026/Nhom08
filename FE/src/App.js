@@ -22,6 +22,7 @@ import CustomerAuth from "./pages/Customer/CustomerAuth.tsx";
 import CustomerLayout from "./layouts/CustomerLayout.tsx";
 import Home from "./pages/Home/Home.tsx";
 import CustomerPlaces from "./pages/Customer/CustomerPlaces.tsx";
+import CustomerSpin from "./pages/Customer/CustomerSpin.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -71,6 +72,22 @@ function App() {
           element={
             <CustomerLayout>
               <CustomerPlaces />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/date/spin"
+          element={
+            <CustomerLayout>
+              <CustomerSpin />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/spin"
+          element={
+            <CustomerLayout>
+              <CustomerSpin />
             </CustomerLayout>
           }
         />
