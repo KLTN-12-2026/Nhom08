@@ -91,6 +91,12 @@ const placesAPI = {
         return response.data;
     },
 
+    // PUT /api/reviews/{review} - Update a review/comment
+    updateReview: async (reviewId, payload) => {
+        const response = await apiClient.put(`/reviews/${reviewId}`, payload);
+        return response.data;
+    },
+
     // GET /api/reviews/place/{placeId} - Get reviews of a place
     getReviewsByPlace: async (placeId, params = {}) => {
         const response = await apiClient.get(`/reviews/place/${placeId}`, { params });

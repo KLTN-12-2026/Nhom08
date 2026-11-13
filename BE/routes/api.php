@@ -71,6 +71,9 @@ Route::get('/tickets/types', [TicketController::class, 'getTypes'])->name('ticke
 Route::get('/activity-groups', [ActivityGroupController::class, 'index'])->name('activity-groups.index');
 Route::get('/activity-groups/{activityGroup}', [ActivityGroupController::class, 'show'])->name('activity-groups.show');
 
+// Public route: Get reviews for a place (no auth required)
+Route::get('/reviews/place/{placeId}', [ReviewController::class, 'getByPlace'])->name('public.reviews.place');
+
 // Public route: Get announcements (no auth required)
 Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
 

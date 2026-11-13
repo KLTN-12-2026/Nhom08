@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Button, Form, Input, Rate, Avatar, message, Upload, Select, InputNumber, Tag, Image, Tooltip } from "antd";
+import { Card, Button, Form, Input, Rate, Avatar, message, Upload, Select, InputNumber, Tag, Image, Tooltip, Modal, Popconfirm } from "antd";
 import { activityGroups } from "../../data/remote/activityGroups";
 import tagsAPI from "../../data/remote/tags";
 import categoriesAPI from "../../data/remote/categories";
@@ -29,6 +29,7 @@ export default function CustomerPlaces() {
   const { user: currentUser } = useCustomerStore();
   const [form] = Form.useForm();
   const [createForm] = Form.useForm();
+  const [editReviewForm] = Form.useForm();
   
   // Get addPost from global store
   const { addPost } = useDataMainStore();
@@ -47,6 +48,8 @@ export default function CustomerPlaces() {
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [selectedRatingFilter, setSelectedRatingFilter] = useState<number | "all">("all");
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
+  const [isUpdatingReview, setIsUpdatingReview] = useState(false);
 
   // Load options for create form
   useEffect(() => {
@@ -70,8 +73,18 @@ export default function CustomerPlaces() {
       setPlace(data);
       setIsFavorited(Boolean(data?.is_favorited));
       setActiveImageIdx(0);
-      // Map reviews từ API response
-      const rawReviews = data?.reviews || data?.data?.reviews || [];
+      // Map reviews từ API response (nếu có riêng API reviews thì gọi thêm để lấy đầy đủ)
+      let rawReviews = data?.reviews || data?.data?.reviews || [];
+      try {
+        const revRes = await placesAPI.getReviewsByPlace(id, { per_page: 50 });
+        const listFromApi = revRes?.data?.data || revRes?.data || [];
+        if (Array.isArray(listFromApi) && listFromApi.length > 0) {
+          rawReviews = listFromApi;
+        }
+      } catch (err) {
+        // Fallback to place.reviews if getReviewsByPlace fails
+      }
+
       setReviews(
         rawReviews.map((r: any) => ({
           id: r.id,
@@ -184,6 +197,47 @@ export default function CustomerPlaces() {
       }
     } catch (e: any) {
       message.error(e?.response?.data?.message || "Lỗi khi xóa bình luận.");
+    }
+  };
+
+  const handleOpenEditReview = (rev: Review) => {
+    setEditingReview(rev);
+    editReviewForm.setFieldsValue({
+      rating: rev.rating,
+      comment: rev.comment,
+    });
+  };
+
+  const handleUpdateReview = async (values: any) => {
+    if (!editingReview) return;
+    setIsUpdatingReview(true);
+    try {
+      const payload = {
+        rating: values.rating,
+        comment: values.comment,
+      };
+      const res = await placesAPI.updateReview(editingReview.id, payload);
+      if (res?.success || res?.data) {
+        setReviews((prev) =>
+          prev.map((r) =>
+            r.id === editingReview.id
+              ? {
+                  ...r,
+                  rating: Number(values.rating),
+                  comment: values.comment,
+                }
+              : r
+          )
+        );
+        message.success("Cập nhật bình luận thành công!");
+        setEditingReview(null);
+      } else {
+        message.error(res?.message || "Cập nhật bình luận thất bại.");
+      }
+    } catch (e: any) {
+      message.error(e?.response?.data?.message || "Có lỗi xảy ra khi cập nhật bình luận.");
+    } finally {
+      setIsUpdatingReview(false);
     }
   };
 
@@ -812,14 +866,30 @@ export default function CustomerPlaces() {
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-gray-400 font-medium shrink-0">{rev.date}</span>
                               {isMyReview && (
-                                <Tooltip title="Xóa bình luận của bạn">
-                                  <button
-                                    onClick={() => handleDeleteReview(rev.id)}
-                                    className="text-gray-300 hover:text-red-500 text-xs transition-colors p-1"
+                                <div className="flex items-center gap-1">
+                                  <Tooltip title="Chỉnh sửa bình luận">
+                                    <button
+                                      onClick={() => handleOpenEditReview(rev)}
+                                      className="text-gray-300 hover:text-amber-500 text-xs transition-colors p-1"
+                                    >
+                                      <i className="fa-regular fa-pen-to-square" />
+                                    </button>
+                                  </Tooltip>
+                                  <Popconfirm
+                                    title="Xóa bình luận"
+                                    description="Bạn có chắc chắn muốn xóa bình luận này?"
+                                    onConfirm={() => handleDeleteReview(rev.id)}
+                                    okText="Xóa"
+                                    cancelText="Hủy"
+                                    okButtonProps={{ danger: true }}
                                   >
-                                    <i className="fa-regular fa-trash-can" />
-                                  </button>
-                                </Tooltip>
+                                    <Tooltip title="Xóa bình luận của bạn">
+                                      <button className="text-gray-300 hover:text-red-500 text-xs transition-colors p-1">
+                                        <i className="fa-regular fa-trash-can" />
+                                      </button>
+                                    </Tooltip>
+                                  </Popconfirm>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -837,6 +907,60 @@ export default function CustomerPlaces() {
           </Card>
         </div>
       </div>
+
+      {/* Edit Review Modal */}
+      <Modal
+        title={<span className="font-bold text-base">Chỉnh sửa bình luận</span>}
+        open={Boolean(editingReview)}
+        onCancel={() => setEditingReview(null)}
+        footer={null}
+        destroyOnClose
+        centered
+        className="rounded-3xl overflow-hidden"
+      >
+        <Form
+          form={editReviewForm}
+          layout="vertical"
+          onFinish={handleUpdateReview}
+          className="pt-3 space-y-4"
+        >
+          <Form.Item
+            name="rating"
+            label={<span className="font-bold text-sm">Số sao đánh giá</span>}
+            rules={[{ required: true, message: "Vui lòng chọn số sao!" }]}
+          >
+            <Rate className="text-[#FFCB37]" style={{ color: "#FFCB37" }} />
+          </Form.Item>
+
+          <Form.Item
+            name="comment"
+            label={<span className="font-bold text-sm">Nội dung nhận xét</span>}
+            rules={[{ required: true, message: "Vui lòng nhập nội dung nhận xét!" }]}
+          >
+            <Input.TextArea
+              rows={4}
+              maxLength={500}
+              showCount
+              placeholder="Cập nhật cảm nhận của bạn về địa điểm..."
+              className="rounded-xl border-gray-200 dark:border-gray-800"
+            />
+          </Form.Item>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button onClick={() => setEditingReview(null)} className="rounded-xl">
+              Hủy
+            </Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={isUpdatingReview}
+              className="bg-[#FFCB37] hover:bg-[#FFCB37]/90 text-black border-none font-bold rounded-xl"
+            >
+              Lưu thay đổi
+            </Button>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 }
