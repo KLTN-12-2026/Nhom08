@@ -21,6 +21,7 @@ import NotFound from "./pages/NotFound/NotFound.tsx";
 import CustomerAuth from "./pages/Customer/CustomerAuth.tsx";
 import CustomerLayout from "./layouts/CustomerLayout.tsx";
 import Home from "./pages/Home/Home.tsx";
+import CustomerPlaces from "./pages/Customer/CustomerPlaces.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -46,6 +47,30 @@ function App() {
           element={
             <CustomerLayout>
               <Home />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/location"
+          element={
+            <CustomerLayout>
+              <PublicPlaces />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/places/:id"
+          element={
+            <CustomerLayout>
+              <CustomerPlaces />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/places/create"
+          element={
+            <CustomerLayout>
+              <CustomerPlaces />
             </CustomerLayout>
           }
         />
