@@ -23,6 +23,9 @@ import CustomerLayout from "./layouts/CustomerLayout.tsx";
 import Home from "./pages/Home/Home.tsx";
 import CustomerPlaces from "./pages/Customer/CustomerPlaces.tsx";
 import CustomerSpin from "./pages/Customer/CustomerSpin.tsx";
+import CustomerPlans from "./pages/Customer/CustomerPlans.tsx";
+import SharedPlanView from "./pages/Customer/SharedPlanView.tsx";
+import PlanResponsesView from "./pages/Customer/PlanResponsesView.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -90,6 +93,30 @@ function App() {
               <CustomerSpin />
             </CustomerLayout>
           }
+        />
+        <Route
+          path="/plans"
+          element={
+            <CustomerLayout>
+              <CustomerPlans />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/plans/create"
+          element={
+            <CustomerLayout>
+              <CustomerPlans />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/plans/shared"
+          element={<SharedPlanView />}
+        />
+        <Route
+          path="/plans/responses"
+          element={<PlanResponsesView />}
         />
         <Route path="/login" element={<CustomerAuth />} />
         <Route path="/register" element={<CustomerAuth />} />
