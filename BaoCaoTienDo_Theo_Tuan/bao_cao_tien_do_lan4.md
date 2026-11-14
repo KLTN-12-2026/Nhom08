@@ -108,12 +108,4 @@ Tiếp nối thành công của Sprint 1 (hoàn tất 100% phân hệ Quản tr�
 - **Tính nhất quán dữ liệu:** Toàn bộ API Backend (Laravel Sanctum, Eloquent, Repositories, Policies) liên kết chặt chẽ với tầng Data Access Layer phía React (`RepositoryManager`).
 - **Trải nghiệm người dùng:** Giao diện đồng nhất với bản thiết kế, bố cục responsive tốt trên cả thiết bị di động và máy tính để bàn.
 
----
-
-## 3. Kế hoạch trong đợt tiếp theo (Sprint 3 - Tối ưu hóa & Hoàn thiện đồ án)
-
-1. Tích hợp thanh toán trực tuyến (nâng cấp gói Premium / dịch vụ) cho phân hệ khách hàng.
-2. Hoàn thiện kết nối API thời gian thực với AI Engine cho tính năng gợi ý lịch trình thông minh.
-3. Kiểm thử tải (Stress testing) và tối ưu hóa hiệu năng truy vấn cơ sở dữ liệu.
-4. Chuẩn bị tài liệu kỹ thuật, sơ đồ kiến trúc hệ thống và bản thảo báo cáo khóa luận tốt nghiệp.
 
