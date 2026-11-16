@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Form, Input, Avatar, message, Card } from "antd";
+import React, { useState, useRef } from "react";
+import { Form, Input, Avatar, message, Card, Upload } from "antd";
 import useLanguageStore from "../../stores/languageStore.ts";
 import useCustomerStore from "../../stores/customerStore";
 import RepositoryManager from "../../data/repositoryManager";
@@ -8,11 +8,14 @@ export default function CustomerAccount() {
   const { t } = useLanguageStore();
   const [profileForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { user } = useCustomerStore();
+  const { user, setUser } = useCustomerStore();
 
   // Control which form is currently shown
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // Local state initialized with user info dynamically
   const [profile, setProfile] = useState({
@@ -23,6 +26,30 @@ export default function CustomerAccount() {
   });
 
   React.useEffect(() => {
+    // If user info is not full, refresh from /me
+    const loadCurrentUser = async () => {
+      try {
+        const res = await RepositoryManager.auth.getMe();
+        if (res && res.data) {
+          const u = res.data;
+          setUser(u);
+          setProfile({
+            name: u.name || "",
+            email: u.email || "",
+            phone: u.phone_number || u.phone || "",
+            avatar: u.avatar || "",
+          });
+          profileForm.setFieldsValue({
+            name: u.name,
+            email: u.email,
+            phone: u.phone_number || u.phone,
+          });
+        }
+      } catch (err) {
+        console.warn("Could not fetch current customer info:", err);
+      }
+    };
+
     if (user) {
       setProfile({
         name: user.name || "",
@@ -35,43 +62,84 @@ export default function CustomerAccount() {
         email: user.email,
         phone: user.phone_number || user.phone,
       });
+    } else {
+      loadCurrentUser();
     }
-  }, [user, profileForm]);
+  }, [user, profileForm, setUser]);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      message.error("Vui lòng chọn tệp hình ảnh hợp lệ!");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      message.error("Dung lượng ảnh tối đa 10MB!");
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const res = await RepositoryManager.auth.updateAvatar(formData);
+      if (res && (res.success || res.data)) {
+        const updatedAvatar = res.data?.avatar || res.data?.avatar_url || URL.createObjectURL(file);
+        setProfile((prev) => ({ ...prev, avatar: updatedAvatar }));
+        if (user) {
+          setUser({ ...user, avatar: updatedAvatar });
+        }
+        message.success("Cập nhật ảnh đại diện thành công!");
+      }
+    } catch (err: any) {
+      console.error(err);
+      message.error(err?.response?.data?.message || "Tải ảnh đại diện thất bại!");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   const handleSaveProfile = async (values: any) => {
     try {
-      if (!user?.id) {
-        message.error("Không tìm thấy thông tin tài khoản!");
-        return;
-      }
-      await RepositoryManager.users.updateUser(user.id, {
+      setIsSaving(true);
+      const res = await RepositoryManager.auth.updateProfile({
         name: values.name,
-        email: values.email,
+        phone_number: values.phone,
+        gender: user?.gender || "other",
+      });
+
+      const updatedUser = res?.data || {
+        ...user,
+        name: values.name,
         phone_number: values.phone,
         phone: values.phone,
-      });
+      };
+
       // Save changes to local state & store
       setProfile((prev) => ({
         ...prev,
-        ...values,
-      }));
-      useCustomerStore.getState().setUser({
-        ...user,
-        ...values,
-        phone_number: values.phone,
+        name: values.name,
         phone: values.phone,
-      });
+      }));
+      setUser(updatedUser);
       message.success(t("common.saveSuccess") || "Đã lưu thay đổi thành công!");
     } catch (error: any) {
       console.error(error);
       message.error(
-        error?.response?.data?.msg || "Cập nhật thông tin cá nhân thất bại!",
+        error?.response?.data?.message || error?.response?.data?.msg || "Cập nhật thông tin cá nhân thất bại!",
       );
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleUpdatePassword = async (values: any) => {
     try {
+      setIsSaving(true);
       await RepositoryManager.auth.updatePassword({
         current_password: values.currentPassword,
         new_password: values.newPassword,
@@ -86,9 +154,12 @@ export default function CustomerAccount() {
     } catch (error: any) {
       console.error(error);
       message.error(
+        error?.response?.data?.message ||
         error?.response?.data?.msg ||
           "Mật khẩu cũ không chính xác hoặc xác nhận mật khẩu không trùng khớp!",
       );
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -120,7 +191,18 @@ export default function CustomerAccount() {
           >
             {/* Circular Avatar Section with Camera Icon Overlay */}
             <div className="flex flex-col items-center justify-center space-y-3 pb-4">
-              <div className="relative group cursor-pointer">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleAvatarChange}
+                accept="image/*"
+                className="hidden"
+              />
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="relative group cursor-pointer"
+                title="Nhấn để tải lên ảnh đại diện mới"
+              >
                 <Avatar
                   src={profile.avatar || undefined}
                   icon={
@@ -132,11 +214,14 @@ export default function CustomerAccount() {
                   className="bg-gray-100 dark:bg-gray-800 border border-gray-200/50 flex items-center justify-center shadow-inner"
                 />
                 <div className="absolute bottom-0 right-1 w-9 h-9 rounded-full bg-[#FFCB37] flex items-center justify-center shadow-md border-2 border-white hover:scale-105 transition-transform duration-200">
-                  <i className="fa-solid fa-camera text-sm text-black" />
+                  <i className={`fa-solid ${isUploadingAvatar ? "fa-spinner fa-spin" : "fa-camera"} text-sm text-black`} />
                 </div>
               </div>
-              <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">
-                Thay đổi ảnh đại diện
+              <span
+                onClick={() => fileInputRef.current?.click()}
+                className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 font-bold uppercase tracking-wider cursor-pointer transition-colors"
+              >
+                {isUploadingAvatar ? "Đang tải ảnh..." : "Thay đổi ảnh đại diện"}
               </span>
             </div>
 

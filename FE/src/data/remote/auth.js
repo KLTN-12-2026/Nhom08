@@ -18,7 +18,17 @@ export const auth = {
     return response.data;
   },
   updateProfile: async (data) => {
-    const response = await apiClient.put("/profile", data);
+    const response = await apiClient.put("/me", data);
+    return response.data;
+  },
+  updateAvatar: async (formData) => {
+    const response = await apiClient.post("/me/avatar", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  },
+  getMe: async () => {
+    const response = await apiClient.get("/me");
     return response.data;
   },
   updatePassword: async (data) => {
