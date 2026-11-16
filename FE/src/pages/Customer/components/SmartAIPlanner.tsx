@@ -352,7 +352,7 @@ MANDATORY JSON FORMAT ONLY:
   "general_advice": "${isEn ? "Preparation advice for host (reservations, timing...)" : "Lời khuyên chuẩn bị cho người chủ trì"}"
 }`;
 
-      const apiKey = "AQ.Ab8RN6JS4i_WBehe3-uMoRvWJL0-h2DCXnlSj1iOMcTUiFd6Hg";
+      const apiKey = process.env.REACT_APP_GEMINI_API_KEY || "";
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
       setLoadingStep(t("aiPlanner.step3"));
