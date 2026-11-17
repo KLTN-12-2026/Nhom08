@@ -73,6 +73,14 @@ function App() {
           }
         />
         <Route
+          path="/places/:id/edit"
+          element={
+            <CustomerLayout>
+              <CustomerPlaces />
+            </CustomerLayout>
+          }
+        />
+        <Route
           path="/places/create"
           element={
             <CustomerLayout>

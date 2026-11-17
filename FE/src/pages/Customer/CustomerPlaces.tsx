@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Card, Button, Form, Input, Rate, Avatar, message, Upload, Select, InputNumber, Tag, Image, Tooltip, Modal, Popconfirm } from "antd";
 import { activityGroups } from "../../data/remote/activityGroups";
 import tagsAPI from "../../data/remote/tags";
@@ -25,6 +25,8 @@ interface Review {
 export default function CustomerPlaces() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isEditMode = Boolean(id && location.pathname.endsWith("/edit"));
   const { t } = useLanguageStore();
   const { user: currentUser } = useCustomerStore();
   const [form] = Form.useForm();
@@ -51,19 +53,19 @@ export default function CustomerPlaces() {
   const [editingReview, setEditingReview] = useState<Review | null>(null);
   const [isUpdatingReview, setIsUpdatingReview] = useState(false);
 
-  // Load options for create form
+  // Load options for create/edit form
   useEffect(() => {
-    if (!id) {
+    if (!id || isEditMode) {
       loadOptions();
     }
-  }, [id]);
+  }, [id, isEditMode]);
 
   // Load place details from API when id is present
   useEffect(() => {
     if (id) {
       fetchPlace();
     }
-  }, [id]);
+  }, [id, isEditMode]);
 
   const fetchPlace = async () => {
     setLoadingPlace(true);
@@ -73,6 +75,24 @@ export default function CustomerPlaces() {
       setPlace(data);
       setIsFavorited(Boolean(data?.is_favorited));
       setActiveImageIdx(0);
+
+      // If in edit mode, prefill createForm
+      if (isEditMode && data) {
+        createForm.setFieldsValue({
+          name: data.name,
+          address: data.address,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          description: data.description,
+          average_price: data.average_price,
+          contact_phone: data.contact_phone,
+          contact_email: data.contact_email,
+          tags: Array.isArray(data.tags) ? data.tags.map((t: any) => (typeof t === "string" ? t : t.name)) : [],
+          category_ids: Array.isArray(data.categories) ? data.categories.map((c: any) => c.id) : [],
+          activity_group_ids: Array.isArray(data.activity_groups) ? data.activity_groups.map((g: any) => g.id) : [],
+        });
+      }
+
       // Map reviews từ API response (nếu có riêng API reviews thì gọi thêm để lấy đầy đủ)
       let rawReviews = data?.reviews || data?.data?.reviews || [];
       try {
@@ -274,20 +294,26 @@ export default function CustomerPlaces() {
         });
       }
 
-      // Call Laravel BE API (multipart/form-data)
-      const result = await placesAPI.createPublicPlace(formData);
+      let result;
+      if (isEditMode && id) {
+        // Update existing place
+        result = await placesAPI.updatePlace(Number(id), formData);
+      } else {
+        // Create new public place
+        result = await placesAPI.createPublicPlace(formData);
+      }
       
       if (result && (result.success !== false)) {
-        message.success("Đăng địa điểm mới thành công! Địa điểm của bạn đã được gửi lên hệ thống.");
+        message.success(isEditMode ? "Cập nhật bài viết địa điểm thành công!" : "Đăng địa điểm mới thành công! Địa điểm của bạn đã được gửi lên hệ thống.");
         createForm.resetFields();
         setTimeout(() => {
-          navigate("/location");
+          navigate(isEditMode ? "/my-posts" : "/location");
         }, 800);
       } else {
-        message.error(result?.message || "Đăng địa điểm thất bại");
+        message.error(result?.message || (isEditMode ? "Cập nhật thất bại" : "Đăng địa điểm thất bại"));
       }
     } catch (error: any) {
-      console.error("Lỗi khi thêm địa điểm:", error);
+      console.error("Lỗi khi lưu địa điểm:", error);
       const errors = error?.response?.data?.errors;
       let errMsg = "";
       if (errors && typeof errors === "object") {
@@ -318,15 +344,15 @@ export default function CustomerPlaces() {
     createForm.setFieldsValue(randomData);
   };
 
-  // If ID is not defined, render full-featured Add Place Web Form
-  if (!id) {
+  // If ID is not defined or is in Edit Mode, render Form Mode
+  if (!id || isEditMode) {
     return (
       <div className="w-full max-w-4xl mx-auto py-10 px-6 font-sans text-gray-900 dark:text-gray-100 pb-24">
         <Card 
           title={
             <span className="flex items-center gap-2 text-lg font-semibold">
-              <i className="fa-solid fa-location-dot text-black"></i>
-              New Place
+              <i className="fa-solid fa-location-dot text-[#FFCB37]"></i>
+              {isEditMode ? "Chỉnh sửa bài viết địa điểm" : "Đăng địa điểm mới"}
             </span>
           }
           className="bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-850 rounded-[32px] p-8 shadow-sm"

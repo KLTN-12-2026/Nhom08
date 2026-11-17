@@ -475,7 +475,7 @@ class PlaceController extends Controller
      */
     public function destroy(Place $place)
     {
-        $this->authorize("destroy", $place);
+        $this->authorize("delete", $place);
         $this->service->delete($place->id);
         $data = [];
         return $this->response($data);
