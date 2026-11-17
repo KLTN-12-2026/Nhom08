@@ -27,6 +27,7 @@ import CustomerPlans from "./pages/Customer/CustomerPlans.tsx";
 import SharedPlanView from "./pages/Customer/SharedPlanView.tsx";
 import PlanResponsesView from "./pages/Customer/PlanResponsesView.tsx";
 import CustomerAccount from "./pages/Customer/CustomerAccount.tsx";
+import CustomerPosts from "./pages/Customer/CustomerPosts.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -132,6 +133,14 @@ function App() {
           element={
             <CustomerLayout>
               <CustomerAccount />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/my-posts"
+          element={
+            <CustomerLayout>
+              <CustomerPosts />
             </CustomerLayout>
           }
         />
