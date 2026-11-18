@@ -95,6 +95,15 @@ class FavoritePlaceController extends Controller
     public function index(SearchFilterRequest $request)
     {
         $this->authorize("index", FavoritePlace::class);
+        $user = $request->user();
+        
+        // Scope to current user unless user is admin
+        if ($user && $user->role !== 'admin') {
+            $filters = $request->input('filters', []);
+            $filters['user_id'] = $user->id;
+            $request->merge(['filters' => $filters]);
+        }
+
         $data = $this->service->all($request);
         $data->load('place');
         return $this->response(new PaginationResource(FavoritePlaceResource::collection($data)));
