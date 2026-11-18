@@ -29,6 +29,7 @@ import PlanResponsesView from "./pages/Customer/PlanResponsesView.tsx";
 import CustomerAccount from "./pages/Customer/CustomerAccount.tsx";
 import CustomerPosts from "./pages/Customer/CustomerPosts.tsx";
 import CustomerNotifications from "./pages/Customer/CustomerNotifications.tsx";
+import CustomerFavorites from "./pages/Customer/CustomerFavorites.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -158,6 +159,14 @@ function App() {
           element={
             <CustomerLayout>
               <CustomerNotifications />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/favorites"
+          element={
+            <CustomerLayout>
+              <CustomerFavorites />
             </CustomerLayout>
           }
         />
