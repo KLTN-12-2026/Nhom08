@@ -30,6 +30,7 @@ import CustomerAccount from "./pages/Customer/CustomerAccount.tsx";
 import CustomerPosts from "./pages/Customer/CustomerPosts.tsx";
 import CustomerNotifications from "./pages/Customer/CustomerNotifications.tsx";
 import CustomerFavorites from "./pages/Customer/CustomerFavorites.tsx";
+import CustomerFeedback from "./pages/Customer/CustomerFeedback.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -167,6 +168,14 @@ function App() {
           element={
             <CustomerLayout>
               <CustomerFavorites />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/feedback"
+          element={
+            <CustomerLayout>
+              <CustomerFeedback />
             </CustomerLayout>
           }
         />
