@@ -39,13 +39,14 @@ export default function CustomerFeedback() {
 
     setLoading(true);
     try {
-      // Map categoryKey to ticket type integer (e.g. fbBug = 1, fbFeature = 2, fbRoast = 3, fbFeedback = 4, fbInvite = 5)
-      let ticketType = 4; // Default to Feedback/General
-      if (categoryKey === "fbBug") ticketType = 1;
-      else if (categoryKey === "fbFeature") ticketType = 2;
-      else if (categoryKey === "fbRoast") ticketType = 3;
-      else if (categoryKey === "fbFeedback") ticketType = 4;
-      else if (categoryKey === "fbInvite") ticketType = 5;
+      // Map categoryKey to ticket type integer matching TicketType:
+      // Feature = 0, Bug = 1, Complaint = 2, Feedback = 3, Other = 4
+      let ticketType = 3; // Default to Feedback
+      if (categoryKey === "fbFeature") ticketType = 0;
+      else if (categoryKey === "fbBug") ticketType = 1;
+      else if (categoryKey === "fbRoast") ticketType = 2;
+      else if (categoryKey === "fbFeedback") ticketType = 3;
+      else if (categoryKey === "fbInvite") ticketType = 4;
 
       const res = await RepositoryManager.ticketsUser.create({
         subject: category,
