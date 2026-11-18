@@ -28,6 +28,7 @@ import SharedPlanView from "./pages/Customer/SharedPlanView.tsx";
 import PlanResponsesView from "./pages/Customer/PlanResponsesView.tsx";
 import CustomerAccount from "./pages/Customer/CustomerAccount.tsx";
 import CustomerPosts from "./pages/Customer/CustomerPosts.tsx";
+import CustomerNotifications from "./pages/Customer/CustomerNotifications.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -149,6 +150,14 @@ function App() {
           element={
             <CustomerLayout>
               <CustomerPosts />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <CustomerLayout>
+              <CustomerNotifications />
             </CustomerLayout>
           }
         />
