@@ -39,3 +39,18 @@ export const notificationsAdmin = {
   },
 };
 
+// Customer notification APIs
+export const notificationsCustomer = {
+  // GET /api/notifications - Get current customer's notifications
+  getMyNotifications: async (params = {}) => {
+    const res = await apiClient.get("/notifications", { params });
+    return res.data;
+  },
+
+  // POST /api/notifications/{id}/read - Mark notification as read (if needed)
+  markAsRead: async (id) => {
+    const res = await apiClient.put(`/notifications/${id}`, { is_read: true });
+    return res.data;
+  },
+};
+

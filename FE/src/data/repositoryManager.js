@@ -10,7 +10,7 @@ import { statistics } from "./remote/statistics";
 import * as quotes from "./remote/quotes";
 import { ticketsUser, ticketsAdmin } from "./remote/tickets";
 import settingsAPI from "./remote/settings";
-import { notificationsAdmin } from "./remote/notifications";
+import { notificationsAdmin, notificationsCustomer } from "./remote/notifications";
 import subscriptionsAPI from "./remote/subscriptions";
 import plansAPI from "./remote/plans";
 import planInvitesAPI from "./remote/planInvites";
@@ -32,6 +32,7 @@ const RepositoryManager = {
   ticketsAdmin,
   settings: settingsAPI,
   notificationsAdmin,
+  notifications: notificationsCustomer,
   subscriptions: subscriptionsAPI,
   plans: plansAPI,
   planInvites: planInvitesAPI,

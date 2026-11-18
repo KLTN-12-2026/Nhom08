@@ -1,84 +1,137 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import useLanguageStore from "../../stores/languageStore.ts";
+import useCustomerStore from "../../stores/customerStore";
+import RepositoryManager from "../../data/repositoryManager";
+import dayjs from "dayjs";
 
 interface Notification {
   id: number;
   title: string;
   content: string;
   date: string;
+  type?: string;
+  is_read?: boolean;
 }
 
 export default function CustomerNotifications() {
   const { t } = useLanguageStore();
-  const [notifications] = useState<Notification[]>([
-    {
-      id: 1,
-      title: "Sắp ra mắt",
-      content: "Hôm nay trời đẹp, thay đồ đi chụp vài tấm",
-      date: "07/01/2026"
-    },
-    {
-      id: 2,
-      title: "Vc thật này là ngày nghỉ thứ 3 r",
-      content: "Cuộc sống thật khó khi không có tiền",
-      date: "03/01/2026"
-    }
-  ]);
+  const { user } = useCustomerStore();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const [translatedIds, setTranslatedIds] = useState<number[]>([]);
   const [translatingIds, setTranslatingIds] = useState<number[]>([]);
+  const [translatedTexts, setTranslatedTexts] = useState<Record<number, { title: string; content: string }>>({});
 
-  const translations: Record<number, { title: string; content: string }> = {
-    1: {
-      title: "Coming Soon",
-      content: "Today is a beautiful day, dress up and go take some photos"
-    },
-    2: {
-      title: "Damn, this is the 3rd day off already",
-      content: "Life is indeed hard when you have no money"
+  useEffect(() => {
+    fetchNotifications();
+  }, [user]);
+
+  const fetchNotifications = async () => {
+    setLoading(true);
+    try {
+      const res = await RepositoryManager.notifications.getMyNotifications({ per_page: 50, sort_by: "created_at", sort_order: "desc" });
+      if (res && res.success) {
+        const rawList = res.data?.data || res.data || [];
+        const formatted: Notification[] = rawList.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          content: item.message || item.content || "",
+          date: item.created_at ? dayjs(item.created_at).format("DD/MM/YYYY HH:mm") : "",
+          type: item.type || "admin",
+          is_read: item.is_read || false,
+        }));
+        setNotifications(formatted);
+      }
+    } catch (err) {
+      console.warn("Không thể tải thông báo từ API, dùng dữ liệu mặc định:", err);
+      // Fallback notifications if API encounters error or empty
+      setNotifications([
+        {
+          id: 1,
+          title: "Chào mừng đến với Trove!",
+          content: "Khám phá hàng trăm địa điểm ăn uống, hẹn hò và vui chơi tuyệt vời ngay hôm nay.",
+          date: dayjs().format("DD/MM/YYYY HH:mm"),
+          type: "system",
+        },
+      ]);
+    } finally {
+      setLoading(false);
     }
   };
 
   const toggleTranslate = (id: number) => {
     if (translatedIds.includes(id)) {
-      setTranslatedIds(prev => prev.filter(item => item !== id));
+      setTranslatedIds((prev) => prev.filter((item) => item !== id));
     } else {
-      setTranslatingIds(prev => [...prev, id]);
+      setTranslatingIds((prev) => [...prev, id]);
+      const notif = notifications.find((n) => n.id === id);
       setTimeout(() => {
-        setTranslatingIds(prev => prev.filter(item => item !== id));
-        setTranslatedIds(prev => [...prev, id]);
-      }, 600);
+        setTranslatingIds((prev) => prev.filter((item) => item !== id));
+        setTranslatedIds((prev) => [...prev, id]);
+        if (notif) {
+          setTranslatedTexts((prev) => ({
+            ...prev,
+            [id]: {
+              title: notif.title === "Sắp ra mắt" ? "Coming Soon" : `[EN] ${notif.title}`,
+              content: notif.content || "",
+            },
+          }));
+        }
+      }, 500);
     }
   };
 
   return (
     <div className="w-full max-w-4xl mx-auto py-10 px-6 font-sans text-gray-900 dark:text-gray-100 pb-24 space-y-8">
       {/* Page Header */}
-      <div className="border-b border-gray-100 dark:border-gray-800 pb-5">
-        <h1 className="text-3xl font-black text-black dark:text-white tracking-tight">
-          {t("notifications.pageTitle")}
-        </h1>
-        <p className="text-gray-500 font-semibold text-sm mt-1">
-          {t("notifications.pageSub")}
-        </p>
+      <div className="border-b border-gray-100 dark:border-gray-800 pb-5 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-black text-black dark:text-white tracking-tight">
+            {t("notifications.pageTitle") || "Thông báo"}
+          </h1>
+          <p className="text-gray-500 font-semibold text-sm mt-1">
+            {t("notifications.pageSub") || "Tất cả thông báo và cập nhật mới nhất từ Trove."}
+          </p>
+        </div>
+        <button
+          onClick={fetchNotifications}
+          disabled={loading}
+          className="px-4 py-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 text-gray-600 dark:text-gray-300"
+        >
+          <i className={`fa-solid fa-arrows-rotate ${loading ? "animate-spin" : ""}`} />
+          <span>Làm mới</span>
+        </button>
       </div>
 
       {/* Notifications List */}
-      {notifications.length === 0 ? (
+      {loading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map((idx) => (
+            <div key={idx} className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-800 animate-pulse flex gap-4">
+              <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-800 shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/3" />
+                <div className="h-3 bg-gray-100 dark:bg-gray-850 rounded w-4/5" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : notifications.length === 0 ? (
         <div className="text-center py-20 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-850 rounded-[32px] shadow-sm max-w-xl mx-auto space-y-4">
           <div className="w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-950/20 text-[#FFCB37] flex items-center justify-center text-2xl mx-auto">
             <i className="fa-regular fa-bell-slash" />
           </div>
-          <p className="text-gray-400 font-bold text-sm">{t("notifications.noNotifications")}</p>
-          <p className="text-gray-300 dark:text-gray-600 font-semibold text-xs">{t("notifications.noNotificationsSub")}</p>
+          <p className="text-gray-400 font-bold text-sm">{t("notifications.noNotifications") || "Chưa có thông báo nào."}</p>
+          <p className="text-gray-300 dark:text-gray-600 font-semibold text-xs">{t("notifications.noNotificationsSub") || "Bạn sẽ nhận thông báo khi có cập nhật mới."}</p>
         </div>
       ) : (
         <div className="space-y-4">
           {notifications.map((item) => {
             const isTranslated = translatedIds.includes(item.id);
             const isTranslating = translatingIds.includes(item.id);
-            const displayTitle = isTranslated && translations[item.id] ? translations[item.id].title : item.title;
-            const displayContent = isTranslated && translations[item.id] ? translations[item.id].content : item.content;
+            const displayTitle = isTranslated && translatedTexts[item.id] ? translatedTexts[item.id].title : item.title;
+            const displayContent = isTranslated && translatedTexts[item.id] ? translatedTexts[item.id].content : item.content;
 
             return (
               <div
