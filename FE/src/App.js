@@ -31,6 +31,8 @@ import CustomerPosts from "./pages/Customer/CustomerPosts.tsx";
 import CustomerNotifications from "./pages/Customer/CustomerNotifications.tsx";
 import CustomerFavorites from "./pages/Customer/CustomerFavorites.tsx";
 import CustomerFeedback from "./pages/Customer/CustomerFeedback.tsx";
+import CustomerPremium from "./pages/Customer/CustomerPremium.tsx";
+import CustomerPayment from "./pages/Customer/CustomerPayment.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -176,6 +178,22 @@ function App() {
           element={
             <CustomerLayout>
               <CustomerFeedback />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/premium"
+          element={
+            <CustomerLayout>
+              <CustomerPremium />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/payment"
+          element={
+            <CustomerLayout>
+              <CustomerPayment />
             </CustomerLayout>
           }
         />
