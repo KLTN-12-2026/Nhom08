@@ -46,10 +46,11 @@ export default function AIChatbot() {
     fetchPlaces();
   }, []);
 
-  const handleSend = async () => {
-    if (!inputVal.trim() || loading) return;
+  const handleSend = async (customText?: string) => {
+    const textToSend = typeof customText === "string" ? customText : inputVal;
+    if (!textToSend.trim() || loading) return;
 
-    const userMessage: Message = { role: "user", content: inputVal };
+    const userMessage: Message = { role: "user", content: textToSend };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInputVal("");
@@ -329,6 +330,27 @@ NHIỆM VỤ:
                 </Avatar>
                 <div className="bg-white dark:bg-gray-850 border border-gray-100 dark:border-gray-800 rounded-2xl rounded-tl-none px-4 py-2.5 shadow-sm">
                   <Spin size="small" />
+                </div>
+              </div>
+            )}
+            {messages.length === 1 && !loading && (
+              <div className="pt-2 space-y-2">
+                <span className="text-[11px] font-bold text-gray-400 block px-1">Gợi ý câu hỏi:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    "Gợi ý quán cafe đẹp ở Đà Nẵng",
+                    "Gợi ý địa điểm hẹn hò lãng mạn",
+                    "Cách dùng vòng quay ngẫu nhiên?",
+                    "Cách lên kế hoạch đi chơi?",
+                  ].map((sugg, sIdx) => (
+                    <button
+                      key={sIdx}
+                      onClick={() => handleSend(sugg)}
+                      className="text-xs bg-white dark:bg-gray-800 hover:bg-[#FFCB37]/20 border border-gray-200 dark:border-gray-700 hover:border-[#FFCB37] text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-full transition-all text-left shadow-2xs"
+                    >
+                      {sugg}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
