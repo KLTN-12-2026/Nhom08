@@ -6,7 +6,7 @@ import useCustomerStore from "../stores/customerStore";
 import useLanguageStore from "../stores/languageStore.ts";
 import useThemeStore from "../stores/themeStore.ts";
 import LanguageSwitcher from "../components/LanguageSwitcher.tsx";
-// AIChatbot optional import
+import AIChatbot from "../components/AIChatbot.tsx";
 
 interface CustomerLayoutProps {
   children: React.ReactNode;
@@ -563,6 +563,7 @@ export default function CustomerLayout({ children }: CustomerLayoutProps) {
         </div>
       </div>
       {/* AIChatbot widget */}
+      <AIChatbot />
     </div>
   );
 }
