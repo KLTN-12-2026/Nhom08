@@ -33,6 +33,10 @@ import CustomerFavorites from "./pages/Customer/CustomerFavorites.tsx";
 import CustomerFeedback from "./pages/Customer/CustomerFeedback.tsx";
 import CustomerPremium from "./pages/Customer/CustomerPremium.tsx";
 import CustomerPayment from "./pages/Customer/CustomerPayment.tsx";
+import CustomerGoogleMaps from "./pages/Customer/CustomerGoogleMaps.tsx";
+import CustomerMovies from "./pages/Customer/CustomerMovies.tsx";
+import CustomerSupport from "./pages/Customer/CustomerSupport.tsx";
+import WhatsNew from "./pages/Customer/WhatsNew.tsx";
 
 import Login from "./pages/Login/Login.tsx";
 import useDataMainStore from "./stores/dataMainStore";
@@ -194,6 +198,46 @@ function App() {
           element={
             <CustomerLayout>
               <CustomerPayment />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/movies"
+          element={
+            <CustomerLayout>
+              <CustomerMovies />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/movies/:id"
+          element={
+            <CustomerLayout>
+              <CustomerMovies />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/support"
+          element={
+            <CustomerLayout>
+              <CustomerSupport />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/google-maps"
+          element={
+            <CustomerLayout>
+              <CustomerGoogleMaps />
+            </CustomerLayout>
+          }
+        />
+        <Route
+          path="/whats-new"
+          element={
+            <CustomerLayout>
+              <WhatsNew />
             </CustomerLayout>
           }
         />
