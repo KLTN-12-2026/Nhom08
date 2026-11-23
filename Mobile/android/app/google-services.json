@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "847036502290",
+    "project_id": "trove-f6394",
+    "storage_bucket": "trove-f6394.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:847036502290:android:44569c2ef187c5175ba3cb",
+        "android_client_info": {
+          "package_name": "trove.explore.place.tev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDs6VkauSD-WKHyEG2K3xUT6Qe7exDovzc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>MBXAccessTokens</key>
+    <string>pk.eyJ1IjoidGV2MTUzIiwiYSI6ImNtN3l5M2Z2ZDBlaG0ybnE0cmswNGlwdjkifQ.dwyCMd74YDK5l34bKv774A</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>Trove cần quyền truy cập vị trí của bạn để: 1) Hiển thị các địa điểm gần bạn trên bản đồ, 2) Tính khoảng cách đến địa điểm, 3) Đề xuất địa điểm phù hợp với vị trí hiện tại. Ví dụ: Khi bạn tìm kiếm quán cà phê, chúng tôi sẽ hiển thị các quán gần bạn nhất và khoảng cách đến đó.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Trove cần truy cập vị trí của bạn để: 1) Hiển thị bản đồ các địa điểm xung quanh vị trí hiện tại, 2) Sắp xếp danh sách địa điểm theo khoảng cách gần nhất, 3) Đề xuất địa điểm phù hợp với khu vực bạn đang ở. Ví dụ: Khi bạn mở tab "Địa điểm", chúng tôi hiển thị quán ăn, quán cà phê gần bạn kèm khoảng cách cụ thể.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Trove cần quyền truy cập thư viện ảnh để: 1) Cho phép bạn chọn ảnh từ thư viện khi đánh giá địa điểm, 2) Đăng bài viết về địa điểm kèm ảnh. Ví dụ: Khi bạn viết review về quán cà phê, bạn có thể chọn ảnh món ăn từ thư viện để chia sẻ với cộng đồng.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Trove cần quyền lưu ảnh vào thư viện để: 1) Lưu ảnh bạn vừa chụp trong app, 2) Lưu ảnh địa điểm bạn muốn giữ lại. Ví dụ: Sau khi chụp ảnh review món ăn, app sẽ tự động lưu ảnh vào thư viện của bạn.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Trove cần quyền truy cập camera để: 1) Cho phép bạn chụp ảnh khi đánh giá địa điểm, 2) Chụp ảnh để đăng bài viết về địa điểm mới. Ví dụ: Khi bạn viết review về nhà hàng, bạn có thể chụp ảnh món ăn trực tiếp từ app để chia sẻ trải nghiệm với người dùng khác.</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
+    <key>CFBundleDisplayName</key>
+    <string>Trove</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>Trove</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$(FLUTTER_BUILD_NAME)</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+    <key>CFBundleVersion</key>
+    <string>$(FLUTTER_BUILD_NUMBER)</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>UILaunchStoryboardName</key>
+    <string>LaunchScreen</string>
+    <key>UIMainStoryboardFile</key>
+    <string>Main</string>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+      <string>UIInterfaceOrientationPortrait</string>
+      <string>UIInterfaceOrientationLandscapeLeft</string>
+      <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+      <string>UIInterfaceOrientationPortrait</string>
+      <string>UIInterfaceOrientationPortraitUpsideDown</string>
+      <string>UIInterfaceOrientationLandscapeLeft</string>
+      <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UIViewControllerBasedStatusBarAppearance</key>
+    <false/>
+    <key>CADisableMinimumFrameDurationOnPhone</key>
+    <true/>
+    <key>UIApplicationSupportsIndirectInputEvents</key>
+    <true/>
+    <key>MBXAccessToken</key>
+    <string>YOUR_MAPBOX_ACCESS_TOKEN_HERE</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Trove cần truy cập vị trí của bạn để: 1) Hiển thị bản đồ các địa điểm xung quanh vị trí hiện tại, 2) Sắp xếp danh sách địa điểm theo khoảng cách gần nhất, 3) Đề xuất địa điểm phù hợp với khu vực bạn đang ở. Ví dụ: Khi bạn mở tab "Địa điểm", chúng tôi hiển thị quán ăn, quán cà phê gần bạn kèm khoảng cách cụ thể.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>Trove cần quyền truy cập vị trí của bạn để: 1) Hiển thị các địa điểm gần bạn trên bản đồ, 2) Tính khoảng cách đến địa điểm, 3) Đề xuất địa điểm phù hợp với vị trí hiện tại. Ví dụ: Khi bạn tìm kiếm quán cà phê, chúng tôi sẽ hiển thị các quán gần bạn nhất và khoảng cách đến đó.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>Trove cần quyền truy cập vị trí của bạn để: 1) Hiển thị bản đồ các địa điểm xung quanh, 2) Tính khoảng cách và điều hướng đến địa điểm, 3) Đề xuất địa điểm gần bạn. Ví dụ: Chúng tôi hiển thị "Quán cà phê ABC - 500m từ vị trí của bạn" để bạn dễ dàng tìm thấy địa điểm phù hợp.</string>
+    <!-- FCM Notifications -->
+    <key>UIBackgroundModes</key>
+    <array>
+      <string>remote-notification</string>
+    </array>
+    <!-- Deep Link URL Scheme -->
+    <key>CFBundleURLTypes</key>
+    <array>
+      <dict>
+        <key>CFBundleTypeRole</key>
+        <string>Editor</string>
+        <key>CFBundleURLName</key>
+        <string>com.trove.app</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>trove</string>
+        </array>
+      </dict>
+    </array>
+    <!-- Universal Links (Associated Domains) -->
+    <key>com.apple.developer.associated-domains</key>
+    <array>
+      <string>applinks:trove.id.vn</string>
+    </array>
+  </dict>
+</plist>
